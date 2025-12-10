@@ -1,0 +1,1 @@
+"""DestinyPal FastAPI Backend Application."""

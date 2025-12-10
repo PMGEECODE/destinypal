@@ -1,0 +1,7 @@
+export { AboutUs } from "./AboutUs"
+export { Contact } from "./Contact"
+export { TermsOfService } from "./TermsOfService"
+export { PrivacyPolicy } from "./PrivacyPolicy"
+export { LandingPage } from "./LandingPage"
+export { default as FAQ } from "./FAQ"
+export { DonatePage } from "./Donate"
