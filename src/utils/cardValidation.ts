@@ -4,46 +4,48 @@ export interface CardInfo {
   icon: string;
 }
 
-const CARD_PATTERNS: { [key: string]: { pattern: RegExp; icon: string; name: string } } = {
+const CARD_PATTERNS: {
+  [key: string]: { pattern: RegExp; icon: string; name: string };
+} = {
   visa: {
     pattern: /^4/,
-    icon: '💳',
-    name: 'Visa',
+    icon: "visa",
+    name: "Visa",
   },
   mastercard: {
     pattern: /^(5[1-5]|2[2-7])/,
-    icon: '💳',
-    name: 'Mastercard',
+    icon: "mastercard",
+    name: "Mastercard",
   },
   amex: {
     pattern: /^3[47]/,
-    icon: '💳',
-    name: 'American Express',
+    icon: "amex",
+    name: "American Express",
   },
   discover: {
     pattern: /^6(?:011|5)/,
-    icon: '💳',
-    name: 'Discover',
+    icon: "discover",
+    name: "Discover",
   },
   diners: {
     pattern: /^3(?:0[0-5]|[68])/,
-    icon: '💳',
-    name: 'Diners Club',
+    icon: "diners",
+    name: "Diners Club",
   },
   jcb: {
     pattern: /^35/,
-    icon: '💳',
-    name: 'JCB',
+    icon: "jcb",
+    name: "JCB",
   },
   unionpay: {
     pattern: /^62/,
-    icon: '💳',
-    name: 'UnionPay',
+    icon: "unionpay",
+    name: "UnionPay",
   },
 };
 
 export function detectCardType(cardNumber: string): CardInfo {
-  const cleanNumber = cardNumber.replace(/\s/g, '');
+  const cleanNumber = cardNumber.replace(/\s/g, "");
 
   for (const [type, { pattern, icon, name }] of Object.entries(CARD_PATTERNS)) {
     if (pattern.test(cleanNumber)) {
@@ -51,11 +53,11 @@ export function detectCardType(cardNumber: string): CardInfo {
     }
   }
 
-  return { type: 'unknown', brand: 'Unknown', icon: '💳' };
+  return { type: "unknown", brand: "Unknown", icon: "unknown" };
 }
 
 export function validateCardNumber(cardNumber: string): boolean {
-  const cleanNumber = cardNumber.replace(/\s/g, '');
+  const cleanNumber = cardNumber.replace(/\s/g, "");
 
   if (!/^\d+$/.test(cleanNumber)) {
     return false;
@@ -69,7 +71,7 @@ export function validateCardNumber(cardNumber: string): boolean {
   let isEven = false;
 
   for (let i = cleanNumber.length - 1; i >= 0; i--) {
-    let digit = parseInt(cleanNumber[i], 10);
+    let digit = Number.parseInt(cleanNumber[i], 10);
 
     if (isEven) {
       digit *= 2;
@@ -86,13 +88,13 @@ export function validateCardNumber(cardNumber: string): boolean {
 }
 
 export function validateCVV(cvv: string, cardType: string): boolean {
-  const cleanCVV = cvv.replace(/\s/g, '');
+  const cleanCVV = cvv.replace(/\s/g, "");
 
   if (!/^\d+$/.test(cleanCVV)) {
     return false;
   }
 
-  if (cardType === 'amex') {
+  if (cardType === "amex") {
     return cleanCVV.length === 4;
   }
 
@@ -104,8 +106,8 @@ export function validateExpiryDate(month: string, year: string): boolean {
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth() + 1;
 
-  const expMonth = parseInt(month, 10);
-  const expYear = parseInt(year, 10);
+  const expMonth = Number.parseInt(month, 10);
+  const expYear = Number.parseInt(year, 10);
 
   if (isNaN(expMonth) || isNaN(expYear)) {
     return false;
@@ -129,41 +131,41 @@ export function validateExpiryDate(month: string, year: string): boolean {
 }
 
 export function formatCardNumber(value: string): string {
-  const cleanValue = value.replace(/\s/g, '');
+  const cleanValue = value.replace(/\s/g, "");
   const cardInfo = detectCardType(cleanValue);
 
-  if (cardInfo.type === 'amex') {
+  if (cardInfo.type === "amex") {
     return cleanValue
-      .replace(/(\d{4})(\d{6})(\d{5})/, '$1 $2 $3')
+      .replace(/(\d{4})(\d{6})(\d{5})/, "$1 $2 $3")
       .substr(0, 17);
   }
 
   return cleanValue
-    .replace(/(\d{4})/g, '$1 ')
+    .replace(/(\d{4})/g, "$1 ")
     .trim()
     .substr(0, 19);
 }
 
-export function validatePhoneNumber(phone: string, country: string = 'KE'): boolean {
-  const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+export function validatePhoneNumber(phone: string, country = "KE"): boolean {
+  const cleanPhone = phone.replace(/[\s\-$$$$]/g, "");
 
-  if (country === 'KE') {
+  if (country === "KE") {
     return /^(\+?254|0)?[17]\d{8}$/.test(cleanPhone);
   }
 
   return /^\+?\d{10,15}$/.test(cleanPhone);
 }
 
-export function formatPhoneNumber(phone: string, country: string = 'KE'): string {
-  let cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+export function formatPhoneNumber(phone: string, country = "KE"): string {
+  let cleanPhone = phone.replace(/[\s\-$$$$]/g, "");
 
-  if (country === 'KE') {
-    if (cleanPhone.startsWith('0')) {
-      cleanPhone = '254' + cleanPhone.substring(1);
-    } else if (cleanPhone.startsWith('+254')) {
+  if (country === "KE") {
+    if (cleanPhone.startsWith("0")) {
+      cleanPhone = "254" + cleanPhone.substring(1);
+    } else if (cleanPhone.startsWith("+254")) {
       cleanPhone = cleanPhone.substring(1);
-    } else if (!cleanPhone.startsWith('254')) {
-      cleanPhone = '254' + cleanPhone;
+    } else if (!cleanPhone.startsWith("254")) {
+      cleanPhone = "254" + cleanPhone;
     }
   }
 

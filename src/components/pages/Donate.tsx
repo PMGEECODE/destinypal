@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Heart,
   CreditCard,
@@ -22,8 +22,9 @@ import {
   GraduationCap,
   TrendingUp,
   Info,
-} from "lucide-react"
-import { PaymentService } from "../../services/paymentService"
+} from "lucide-react";
+import Logo from "../logo/Logo";
+import { PaymentService } from "../../services/paymentService";
 import {
   detectCardType,
   validateCardNumber,
@@ -31,7 +32,7 @@ import {
   validateExpiryDate,
   formatCardNumber,
   validatePhoneNumber,
-} from "../../utils/cardValidation"
+} from "../../utils/cardValidation";
 import type {
   PaymentMethod,
   PaymentStep,
@@ -39,14 +40,14 @@ import type {
   MobileMoneyPaymentData,
   CardPaymentData,
   BankTransferDetails,
-} from "../../types/donation"
+} from "../../types/donation";
 import {
   PAYMENT_METHODS,
   SUGGESTED_AMOUNTS,
   DONATION_FREQUENCIES,
   CURRENCIES,
   BANK_TRANSFER_DETAILS,
-} from "../../types/donation"
+} from "../../types/donation";
 
 // Impact stats for the donation page
 const IMPACT_STATS = [
@@ -54,7 +55,7 @@ const IMPACT_STATS = [
   { icon: GraduationCap, value: "85%", label: "Graduation Rate" },
   { icon: Globe, value: "15+", label: "Partner Institutions" },
   { icon: TrendingUp, value: "$1.2M", label: "Total Donations" },
-]
+];
 
 // Initial form state
 const INITIAL_FORM_STATE: DonationFormData = {
@@ -69,143 +70,168 @@ const INITIAL_FORM_STATE: DonationFormData = {
     phone: "",
     is_anonymous: false,
   },
-}
+};
 
 export function DonatePage() {
-  const [step, setStep] = useState<PaymentStep>("details")
-  const [formData, setFormData] = useState<DonationFormData>(INITIAL_FORM_STATE)
-  const [mobileMoneyData, setMobileMoneyData] = useState<MobileMoneyPaymentData>({ phone_number: "" })
+  const [step, setStep] = useState<PaymentStep>("details");
+  const [formData, setFormData] =
+    useState<DonationFormData>(INITIAL_FORM_STATE);
+  const [mobileMoneyData, setMobileMoneyData] =
+    useState<MobileMoneyPaymentData>({ phone_number: "" });
   const [cardData, setCardData] = useState<CardPaymentData>({
     card_number: "",
     card_holder_name: "",
     expiry_month: "",
     expiry_year: "",
     cvv: "",
-  })
-  const [bankTransferDetails, setBankTransferDetails] = useState<BankTransferDetails | null>(null)
+  });
+  const [expiryDate, setExpiryDate] = useState("");
+  const [bankTransferDetails, setBankTransferDetails] =
+    useState<BankTransferDetails | null>(null);
 
-  const [loading, setLoading] = useState(false)
-  const [transactionId, setTransactionId] = useState<string | null>(null)
-  const [errorMessage, setErrorMessage] = useState("")
-  const [copiedField, setCopiedField] = useState<string | null>(null)
-  const [cardInfo, setCardInfo] = useState({ type: "unknown", brand: "Unknown", icon: "💳" })
+  const [loading, setLoading] = useState(false);
+  const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [cardInfo, setCardInfo] = useState({
+    type: "unknown",
+    brand: "Unknown",
+    icon: "💳",
+  });
 
-  const isMountedRef = useRef(true)
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const isMountedRef = useRef(true);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cleanup on unmount
   useEffect(() => {
-    isMountedRef.current = true
+    isMountedRef.current = true;
     return () => {
-      isMountedRef.current = false
+      isMountedRef.current = false;
       if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current)
+        clearInterval(pollIntervalRef.current);
       }
-    }
-  }, [])
+    };
+  }, []);
 
   // Card type detection
   useEffect(() => {
     if (cardData.card_number) {
-      setCardInfo(detectCardType(cardData.card_number))
+      setCardInfo(detectCardType(cardData.card_number));
     }
-  }, [cardData.card_number])
+  }, [cardData.card_number]);
 
   // Poll for payment status
   useEffect(() => {
-    if (step === "processing" && transactionId && formData.payment_method !== "bank_transfer") {
+    if (
+      step === "processing" &&
+      transactionId &&
+      formData.payment_method !== "bank_transfer"
+    ) {
       pollIntervalRef.current = setInterval(async () => {
         try {
-          const transaction = await PaymentService.checkPaymentStatus(transactionId)
+          const transaction = await PaymentService.checkPaymentStatus(
+            transactionId
+          );
 
-          if (!isMountedRef.current) return
+          if (!isMountedRef.current) return;
 
           if (transaction.status === "completed") {
-            setStep("completed")
-            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
-          } else if (transaction.status === "failed" || transaction.status === "cancelled") {
-            setErrorMessage(transaction.failure_reason || "Payment failed. Please try again.")
-            setStep("failed")
-            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
+            setStep("completed");
+            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+          } else if (
+            transaction.status === "failed" ||
+            transaction.status === "cancelled"
+          ) {
+            setErrorMessage(
+              transaction.failure_reason || "Payment failed. Please try again."
+            );
+            setStep("failed");
+            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
           }
         } catch (error) {
-          console.error("Error checking payment status:", error)
+          console.error("Error checking payment status:", error);
         }
-      }, 3000)
+      }, 3000);
     }
 
     return () => {
       if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current)
+        clearInterval(pollIntervalRef.current);
       }
-    }
-  }, [step, transactionId, formData.payment_method])
+    };
+  }, [step, transactionId, formData.payment_method]);
 
   // Form field update helpers
   const updateFormData = useCallback((updates: Partial<DonationFormData>) => {
-    setFormData((prev) => ({ ...prev, ...updates }))
-  }, [])
+    setFormData((prev) => ({ ...prev, ...updates }));
+  }, []);
 
-  const updateDonorInfo = useCallback((updates: Partial<DonationFormData["donor"]>) => {
-    setFormData((prev) => ({
-      ...prev,
-      donor: { ...prev.donor, ...updates },
-    }))
-  }, [])
+  const updateDonorInfo = useCallback(
+    (updates: Partial<DonationFormData["donor"]>) => {
+      setFormData((prev) => ({
+        ...prev,
+        donor: { ...prev.donor, ...updates },
+      }));
+    },
+    []
+  );
 
   // Validation
   const validateDetailsStep = useCallback((): boolean => {
     if (!formData.amount || Number.parseFloat(formData.amount) <= 0) {
-      setErrorMessage("Please enter a valid donation amount")
-      return false
+      setErrorMessage("Please enter a valid donation amount");
+      return false;
     }
     if (!formData.donor.name.trim()) {
-      setErrorMessage("Please enter your name")
-      return false
+      setErrorMessage("Please enter your name");
+      return false;
     }
-    if (!formData.donor.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.donor.email)) {
-      setErrorMessage("Please enter a valid email address")
-      return false
+    if (
+      !formData.donor.email.trim() ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.donor.email)
+    ) {
+      setErrorMessage("Please enter a valid email address");
+      return false;
     }
     if (!formData.payment_method) {
-      setErrorMessage("Please select a payment method")
-      return false
+      setErrorMessage("Please select a payment method");
+      return false;
     }
-    return true
-  }, [formData])
+    return true;
+  }, [formData]);
 
   // Navigation handlers
   const handleContinueToPayment = useCallback(() => {
-    setErrorMessage("")
+    setErrorMessage("");
     if (validateDetailsStep()) {
-      setStep("payment")
+      setStep("payment");
     }
-  }, [validateDetailsStep])
+  }, [validateDetailsStep]);
 
   const handleBackToDetails = useCallback(() => {
-    setErrorMessage("")
-    setStep("details")
-  }, [])
+    setErrorMessage("");
+    setStep("details");
+  }, []);
 
   // Copy to clipboard
   const copyToClipboard = useCallback(async (text: string, field: string) => {
     try {
-      await navigator.clipboard.writeText(text)
-      setCopiedField(field)
-      setTimeout(() => setCopiedField(null), 2000)
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
     } catch (err) {
-      console.error("Failed to copy:", err)
+      console.error("Failed to copy:", err);
     }
-  }, [])
+  }, []);
 
   // Payment processing
   const processPayment = useCallback(async () => {
-    setLoading(true)
-    setErrorMessage("")
+    setLoading(true);
+    setErrorMessage("");
 
     try {
-      const referenceId = PaymentService.generateReferenceId("DON")
-      const amount = Number.parseFloat(formData.amount)
+      const referenceId = PaymentService.generateReferenceId("DON");
+      const amount = Number.parseFloat(formData.amount);
 
       // Initiate transaction
       const transaction = await PaymentService.initiateTransaction({
@@ -222,139 +248,174 @@ export function DonatePage() {
           frequency: formData.frequency,
           is_anonymous: formData.donor.is_anonymous,
         },
-      })
+      });
 
-      if (!isMountedRef.current) return
+      if (!isMountedRef.current) return;
 
-      setTransactionId(transaction.id)
+      setTransactionId(transaction.id);
 
       // Process based on payment method
       switch (formData.payment_method) {
         case "mpesa": {
-          const formattedPhone = PaymentService.formatPhoneNumber(mobileMoneyData.phone_number)
+          const formattedPhone = PaymentService.formatPhoneNumber(
+            mobileMoneyData.phone_number
+          );
           await PaymentService.processMpesaPayment(transaction.id, {
             phone_number: formattedPhone,
             amount,
             account_reference: referenceId,
             transaction_desc: `Donation to DestinyPal by ${formData.donor.name}`,
-          })
-          setStep("processing")
-          break
+          });
+          setStep("processing");
+          break;
         }
 
         case "airtel_money": {
-          const formattedPhone = PaymentService.formatPhoneNumber(mobileMoneyData.phone_number)
+          const formattedPhone = PaymentService.formatPhoneNumber(
+            mobileMoneyData.phone_number
+          );
           await PaymentService.processAirtelMoneyPayment(transaction.id, {
             phone_number: formattedPhone,
             amount,
             account_reference: referenceId,
             transaction_desc: `Donation to DestinyPal by ${formData.donor.name}`,
-          })
-          setStep("processing")
-          break
+          });
+          setStep("processing");
+          break;
         }
 
         case "card": {
           // In production, use a payment gateway to tokenize the card
           // For now, create a mock token
-          const mockToken = `tok_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-          const result = await PaymentService.processCardPayment(transaction.id, {
-            payment_token: mockToken,
-            amount,
-            billing_name: cardData.card_holder_name,
-            billing_email: formData.donor.email,
-          })
+          const mockToken = `tok_${Date.now()}_${Math.random()
+            .toString(36)
+            .substr(2, 9)}`;
+          const result = await PaymentService.processCardPayment(
+            transaction.id,
+            {
+              payment_token: mockToken,
+              amount,
+              billing_name: cardData.card_holder_name,
+              billing_email: formData.donor.email,
+            }
+          );
 
           if (result.success) {
-            setStep("completed")
+            setStep("completed");
           } else {
-            throw new Error(result.message)
+            throw new Error(result.message);
           }
-          break
+          break;
         }
 
         case "paypal": {
-          const result = await PaymentService.processPayPalPayment(transaction.id, {
-            amount,
-            currency: formData.currency,
-            return_url: `${window.location.origin}/donate/success`,
-            cancel_url: `${window.location.origin}/donate/cancel`,
-            description: `Donation to DestinyPal`,
-          })
+          const result = await PaymentService.processPayPalPayment(
+            transaction.id,
+            {
+              amount,
+              currency: formData.currency,
+              return_url: `${window.location.origin}/donate/success`,
+              cancel_url: `${window.location.origin}/donate/cancel`,
+              description: `Donation to DestinyPal`,
+            }
+          );
 
           if (result.approval_url) {
-            window.location.href = result.approval_url
+            window.location.href = result.approval_url;
           } else {
-            setStep("processing")
+            setStep("processing");
           }
-          break
+          break;
         }
 
         case "bank_transfer": {
-          const result = await PaymentService.initiateBankTransfer(transaction.id, {
-            amount,
-            currency: formData.currency,
-            donor_name: formData.donor.name,
-            donor_email: formData.donor.email,
-          })
+          const result = await PaymentService.initiateBankTransfer(
+            transaction.id,
+            {
+              amount,
+              currency: formData.currency,
+              donor_name: formData.donor.name,
+              donor_email: formData.donor.email,
+            }
+          );
 
           setBankTransferDetails({
             ...BANK_TRANSFER_DETAILS,
             reference: result.transaction_ref || referenceId,
-          })
-          setStep("processing")
-          break
+          });
+          setStep("processing");
+          break;
         }
       }
     } catch (error) {
-      if (!isMountedRef.current) return
-      console.error("Payment error:", error)
-      setErrorMessage(error instanceof Error ? error.message : "Payment failed. Please try again.")
-      setStep("failed")
+      if (!isMountedRef.current) return;
+      console.error("Payment error:", error);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Payment failed. Please try again."
+      );
+      setStep("failed");
     } finally {
       if (isMountedRef.current) {
-        setLoading(false)
+        setLoading(false);
       }
     }
-  }, [formData, mobileMoneyData, cardData])
+  }, [formData, mobileMoneyData, cardData]);
 
   // Handle form submission
   const handlePaymentSubmit = useCallback(
     async (e: React.FormEvent) => {
-      e.preventDefault()
-      setErrorMessage("")
+      e.preventDefault();
+      setErrorMessage("");
 
       // Validate payment-specific fields
-      if (formData.payment_method === "mpesa" || formData.payment_method === "airtel_money") {
+      if (
+        formData.payment_method === "mpesa" ||
+        formData.payment_method === "airtel_money"
+      ) {
         if (!validatePhoneNumber(mobileMoneyData.phone_number)) {
-          setErrorMessage("Please enter a valid phone number")
-          return
+          setErrorMessage("Please enter a valid phone number");
+          return;
         }
       }
 
       if (formData.payment_method === "card") {
         if (!validateCardNumber(cardData.card_number)) {
-          setErrorMessage("Please enter a valid card number")
-          return
+          setErrorMessage("Please enter a valid card number");
+          return;
         }
         if (!validateCVV(cardData.cvv, cardInfo.type)) {
-          setErrorMessage("Please enter a valid CVV")
-          return
+          setErrorMessage("Please enter a valid CVV");
+          return;
         }
-        if (!validateExpiryDate(cardData.expiry_month, cardData.expiry_year)) {
-          setErrorMessage("Card has expired or invalid expiry date")
-          return
+        // Validate expiry date using the combined expiryDate state
+        if (
+          !validateExpiryDate(
+            expiryDate.split("/")[0],
+            expiryDate.split("/")[1]
+          )
+        ) {
+          setErrorMessage("Card has expired or invalid expiry date");
+          return;
         }
         if (!cardData.card_holder_name.trim()) {
-          setErrorMessage("Please enter cardholder name")
-          return
+          setErrorMessage("Please enter cardholder name");
+          return;
         }
       }
 
-      await processPayment()
+      await processPayment();
     },
-    [formData.payment_method, mobileMoneyData, cardData, cardInfo.type, processPayment],
-  )
+    [
+      formData.payment_method,
+      mobileMoneyData,
+      cardData,
+      cardInfo.type,
+      processPayment,
+      expiryDate, // Include expiryDate in dependencies
+    ]
+  );
 
   // Complete donation (save to backend)
   const handleComplete = useCallback(async () => {
@@ -370,55 +431,189 @@ export function DonatePage() {
         message: formData.message || undefined,
         is_anonymous: formData.donor.is_anonymous,
         transaction_id: transactionId || undefined,
-      })
+      });
 
       // Reset form
-      setFormData(INITIAL_FORM_STATE)
-      setMobileMoneyData({ phone_number: "" })
+      setFormData(INITIAL_FORM_STATE);
+      setMobileMoneyData({ phone_number: "" });
       setCardData({
         card_number: "",
         card_holder_name: "",
         expiry_month: "",
         expiry_year: "",
         cvv: "",
-      })
-      setBankTransferDetails(null)
-      setTransactionId(null)
-      setStep("details")
+      });
+      setExpiryDate(""); // Reset expiryDate
+      setBankTransferDetails(null);
+      setTransactionId(null);
+      setStep("details");
     } catch (error) {
-      console.error("Error saving donation:", error)
-      setErrorMessage("Donation completed but failed to save. Please contact support.")
+      console.error("Error saving donation:", error);
+      setErrorMessage(
+        "Donation completed but failed to save. Please contact support."
+      );
     }
-  }, [formData, transactionId])
+  }, [formData, transactionId]);
 
   // Reset and try again
   const handleTryAgain = useCallback(() => {
-    setStep("payment")
-    setErrorMessage("")
-  }, [])
+    setStep("payment");
+    setErrorMessage("");
+  }, []);
 
   // Get currency symbol
   const getCurrencySymbol = useCallback((code: string) => {
-    return CURRENCIES.find((c) => c.code === code)?.symbol || "$"
-  }, [])
+    return CURRENCIES.find((c) => c.code === code)?.symbol || "$";
+  }, []);
 
   // Render payment method icon
   const renderPaymentMethodIcon = (methodId: string) => {
     switch (methodId) {
       case "mpesa":
-        return <Smartphone className="w-6 h-6 text-emerald-600" />
+        return <Logo variant="mpesa" size={48} />;
       case "airtel_money":
-        return <Smartphone className="w-6 h-6 text-red-600" />
+        return <Logo variant="airtelmoney" size={48} />;
       case "card":
-        return <CreditCard className="w-6 h-6 text-blue-600" />
+        return <Logo variant="bankcard" size={48} />;
       case "paypal":
-        return <Globe className="w-6 h-6 text-blue-700" />
+        return <Logo variant="paypal" size={48} />;
       case "bank_transfer":
-        return <Building2 className="w-6 h-6 text-slate-600" />
+        return (
+          <div className="flex gap-1">
+            <Logo variant="kcb" size={40} />
+            <Logo variant="equity" size={40} />
+          </div>
+        );
       default:
-        return <CreditCard className="w-6 h-6" />
+        return <CreditCard className="w-6 h-6" />;
     }
-  }
+  };
+
+  const renderCardIcon = () => {
+    const iconClasses = "h-8 w-auto";
+
+    switch (cardInfo.icon) {
+      case "visa":
+        return (
+          <svg className={iconClasses} viewBox="0 0 48 32" fill="none">
+            <rect width="48" height="32" rx="4" fill="#1434CB" />
+            <path
+              d="M19.5 10.5L16.5 21.5H14L11.5 13C11.4 12.6 11.2 12.3 10.9 12.2C10.3 11.9 9.4 11.6 8.5 11.4L8.6 11H13C13.6 11 14.1 11.4 14.2 12L15.3 17.5L17.8 11H20.3L19.5 10.5ZM21 21.5L23 11H25.4L23.4 21.5H21ZM32 13.5C32 13.1 32.3 12.8 33 12.8C33.9 12.7 35 12.9 35.9 13.4L36.4 11.2C35.5 10.9 34.5 10.7 33.5 10.7C31 10.7 29.3 12 29.3 13.8C29.3 15.1 30.5 15.8 31.4 16.2C32.3 16.6 32.7 16.9 32.7 17.3C32.7 17.9 32 18.2 31.3 18.2C30.3 18.2 29.2 17.9 28.3 17.4L27.8 19.6C28.8 20.1 29.9 20.3 31 20.3C33.7 20.4 35.4 19.1 35.4 17.2C35.4 14.9 32 14.7 32 13.5ZM43.5 21.5L41.5 11H39.5C39 11 38.5 11.3 38.3 11.8L34.5 21.5H37L37.6 19.8H40.6L41 21.5H43.5ZM38.4 17.5L39.6 14L40.3 17.5H38.4Z"
+              fill="white"
+            />
+          </svg>
+        );
+      case "mastercard":
+        return (
+          <svg className={iconClasses} viewBox="0 0 48 32" fill="none">
+            <rect width="48" height="32" rx="4" fill="#EB001B" />
+            <circle cx="18" cy="16" r="9" fill="#FF5F00" />
+            <circle cx="30" cy="16" r="9" fill="#F79E1B" />
+            <path
+              d="M24 9.5C22.5 10.7 21.5 12.5 21.5 14.5C21.5 16.5 22.5 18.3 24 19.5C25.5 18.3 26.5 16.5 26.5 14.5C26.5 12.5 25.5 10.7 24 9.5Z"
+              fill="#FF5F00"
+            />
+          </svg>
+        );
+      case "amex":
+        return (
+          <svg className={iconClasses} viewBox="0 0 48 32" fill="none">
+            <rect width="48" height="32" rx="4" fill="#006FCF" />
+            <path
+              d="M10 12L8 20H10.5L10.9 18.5H12.6L13 20H15.5L13.5 12H10ZM11.4 13.5L12.3 16.8H10.5L11.4 13.5Z"
+              fill="white"
+            />
+            <path
+              d="M16 12L14.5 16.5L13 12H10.5L13 20H16.5L19 12H16Z"
+              fill="white"
+            />
+            <path
+              d="M20 12V14H23V16H20V18H23.5V20H25.5V18H27V16H25.5V14H28V12H20Z"
+              fill="white"
+            />
+            <path
+              d="M29 12L28 14.5L27 12H24.5L27 16.5V20H29V16.5L31.5 12H29Z"
+              fill="white"
+            />
+          </svg>
+        );
+      case "discover":
+        return (
+          <svg className={iconClasses} viewBox="0 0 48 32" fill="none">
+            <rect width="48" height="32" rx="4" fill="#FF6000" />
+            <circle cx="38" cy="16" r="10" fill="#F89F20" />
+          </svg>
+        );
+      case "jcb":
+        return (
+          <svg className={iconClasses} viewBox="0 0 48 32" fill="none">
+            <rect width="48" height="32" rx="4" fill="#0E4C96" />
+            <rect x="8" y="10" width="10" height="12" rx="1" fill="#FF0000" />
+            <rect x="19" y="10" width="10" height="12" rx="1" fill="#53B566" />
+            <rect x="30" y="10" width="10" height="12" rx="1" fill="#0066B2" />
+          </svg>
+        );
+      case "diners":
+        return (
+          <svg className={iconClasses} viewBox="0 0 48 32" fill="none">
+            <rect width="48" height="32" rx="4" fill="#0079BE" />
+            <circle
+              cx="20"
+              cy="16"
+              r="8"
+              fill="none"
+              stroke="white"
+              strokeWidth="2"
+            />
+            <circle
+              cx="28"
+              cy="16"
+              r="8"
+              fill="none"
+              stroke="white"
+              strokeWidth="2"
+            />
+          </svg>
+        );
+      case "unionpay":
+        return (
+          <svg className={iconClasses} viewBox="0 0 48 32" fill="none">
+            <rect width="48" height="32" rx="4" fill="#E21836" />
+            <circle cx="18" cy="16" r="6" fill="#002D72" />
+            <circle cx="30" cy="16" r="6" fill="#00A4E0" />
+          </svg>
+        );
+      default:
+        return <CreditCard className="h-6 w-6 text-slate-400" />;
+    }
+  };
+
+  const formatExpiryDate = (value: string) => {
+    // Remove non-digits
+    const digits = value.replace(/\D/g, "");
+
+    // Format as MM/YY
+    if (digits.length >= 2) {
+      return digits.slice(0, 2) + "/" + digits.slice(2, 4);
+    }
+    return digits;
+  };
+
+  const handleExpiryDateChange = (value: string) => {
+    const formatted = formatExpiryDate(value);
+    setExpiryDate(formatted);
+
+    // Parse and update cardData
+    const digits = value.replace(/\D/g, "");
+    const month = digits.slice(0, 2);
+    const year = digits.slice(2, 4);
+
+    setCardData({
+      ...cardData,
+      expiry_month: month,
+      expiry_year: year,
+    });
+  };
 
   // Processing state for mobile money and bank transfer
   if (step === "processing") {
@@ -431,7 +626,9 @@ export function DonatePage() {
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
                   <Building2 className="w-8 h-8 text-blue-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">Bank Transfer Details</h2>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                  Bank Transfer Details
+                </h2>
                 <p className="text-slate-600">
                   Please transfer {getCurrencySymbol(formData.currency)}
                   {formData.amount} to the account below
@@ -440,19 +637,43 @@ export function DonatePage() {
 
               <div className="space-y-4 bg-slate-50 rounded-xl p-6 mb-6">
                 {[
-                  { label: "Bank Name", value: bankTransferDetails.bank_name, field: "bank_name" },
-                  { label: "Account Name", value: bankTransferDetails.account_name, field: "account_name" },
-                  { label: "Account Number", value: bankTransferDetails.account_number, field: "account_number" },
-                  { label: "SWIFT Code", value: bankTransferDetails.swift_code, field: "swift_code" },
-                  { label: "Reference", value: bankTransferDetails.reference, field: "reference" },
+                  {
+                    label: "Bank Name",
+                    value: bankTransferDetails.bank_name,
+                    field: "bank_name",
+                  },
+                  {
+                    label: "Account Name",
+                    value: bankTransferDetails.account_name,
+                    field: "account_name",
+                  },
+                  {
+                    label: "Account Number",
+                    value: bankTransferDetails.account_number,
+                    field: "account_number",
+                  },
+                  {
+                    label: "SWIFT Code",
+                    value: bankTransferDetails.swift_code,
+                    field: "swift_code",
+                  },
+                  {
+                    label: "Reference",
+                    value: bankTransferDetails.reference,
+                    field: "reference",
+                  },
                 ].map(({ label, value, field }) => (
                   <div
                     key={field}
                     className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200"
                   >
                     <div>
-                      <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
-                      <p className="font-mono text-slate-900 font-medium">{value}</p>
+                      <p className="text-xs text-slate-500 uppercase tracking-wide">
+                        {label}
+                      </p>
+                      <p className="font-mono text-slate-900 font-medium">
+                        {value}
+                      </p>
                     </div>
                     <button
                       onClick={() => copyToClipboard(value, field)}
@@ -477,7 +698,9 @@ export function DonatePage() {
                     <ul className="list-disc list-inside space-y-1 text-amber-700">
                       <li>Use the reference number exactly as shown</li>
                       <li>Transfer may take 1-3 business days to process</li>
-                      <li>You will receive a confirmation email once verified</li>
+                      <li>
+                        You will receive a confirmation email once verified
+                      </li>
                     </ul>
                   </div>
                 </div>
@@ -492,33 +715,38 @@ export function DonatePage() {
             </div>
           </div>
         </div>
-      )
+      );
     }
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center border border-slate-200">
           <Loader2 className="w-16 h-16 text-blue-600 animate-spin mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Processing Payment</h2>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">
+            Processing Payment
+          </h2>
           <p className="text-slate-600 mb-6">
-            {formData.payment_method === "card" || formData.payment_method === "paypal"
+            {formData.payment_method === "card" ||
+            formData.payment_method === "paypal"
               ? "Please wait while we process your payment..."
               : "Please check your phone and enter your PIN to complete the payment."}
           </p>
           <div className="bg-slate-50 rounded-xl p-4">
             <p className="text-sm text-slate-700">
-              <span className="font-medium">Amount:</span> {getCurrencySymbol(formData.currency)}
+              <span className="font-medium">Amount:</span>{" "}
+              {getCurrencySymbol(formData.currency)}
               {formData.amount}
             </p>
             {transactionId && (
               <p className="text-sm text-slate-500 mt-1">
-                <span className="font-medium">Reference:</span> {transactionId.slice(0, 20)}...
+                <span className="font-medium">Reference:</span>{" "}
+                {transactionId.slice(0, 20)}...
               </p>
             )}
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   // Success state
@@ -532,11 +760,13 @@ export function DonatePage() {
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Thank You!</h2>
           <p className="text-slate-600 mb-6">
             Your generous donation of {getCurrencySymbol(formData.currency)}
-            {formData.amount} will help transform students' lives through education.
+            {formData.amount} will help transform students' lives through
+            education.
           </p>
           <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-6">
             <p className="text-sm text-emerald-800">
-              A confirmation email has been sent to <strong>{formData.donor.email}</strong>
+              A confirmation email has been sent to{" "}
+              <strong>{formData.donor.email}</strong>
             </p>
           </div>
           <button
@@ -547,7 +777,7 @@ export function DonatePage() {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   // Failed state
@@ -558,13 +788,17 @@ export function DonatePage() {
           <div className="inline-flex items-center justify-center w-20 h-20 bg-red-100 rounded-full mb-6">
             <XCircle className="w-10 h-10 text-red-600" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Payment Failed</h2>
-          <p className="text-slate-600 mb-6">{errorMessage || "Something went wrong. Please try again."}</p>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">
+            Payment Failed
+          </h2>
+          <p className="text-slate-600 mb-6">
+            {errorMessage || "Something went wrong. Please try again."}
+          </p>
           <div className="flex gap-3">
             <button
               onClick={() => {
-                setStep("details")
-                setErrorMessage("")
+                setStep("details");
+                setErrorMessage("");
               }}
               className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-3 rounded-xl transition-colors"
             >
@@ -579,7 +813,7 @@ export function DonatePage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -587,7 +821,7 @@ export function DonatePage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
         {/* Hero Section */}
         <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-blue-700 to-cyan-600 text-white shadow-2xl">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjA1IiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-40" />
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwID0gMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjA1IiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAl" />
           <div className="relative z-10 p-8 md:p-12 lg:p-16">
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-md px-4 py-2 rounded-full text-sm font-medium mb-6 border border-white/20">
@@ -598,8 +832,8 @@ export function DonatePage() {
                 Help Transform Lives Through Education
               </h1>
               <p className="text-lg md:text-xl text-blue-100 leading-relaxed">
-                Your donation directly supports students in need, providing them with educational opportunities that
-                change their futures.
+                Your donation directly supports students in need, providing them
+                with educational opportunities that change their futures.
               </p>
             </div>
           </div>
@@ -630,26 +864,42 @@ export function DonatePage() {
               {/* Step Indicator */}
               <div className="bg-slate-50 border-b border-slate-200 px-6 py-4">
                 <div className="flex items-center gap-4">
-                  <div className={`flex items-center gap-2 ${step === "details" ? "text-blue-600" : "text-slate-400"}`}>
+                  <div
+                    className={`flex items-center gap-2 ${
+                      step === "details" ? "text-blue-600" : "text-slate-400"
+                    }`}
+                  >
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                        step === "details" ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-600"
+                        step === "details"
+                          ? "bg-blue-600 text-white"
+                          : "bg-slate-200 text-slate-600"
                       }`}
                     >
                       1
                     </div>
-                    <span className="font-medium hidden sm:inline">Donation Details</span>
+                    <span className="font-medium hidden sm:inline">
+                      Donation Details
+                    </span>
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-300" />
-                  <div className={`flex items-center gap-2 ${step === "payment" ? "text-blue-600" : "text-slate-400"}`}>
+                  <div
+                    className={`flex items-center gap-2 ${
+                      step === "payment" ? "text-blue-600" : "text-slate-400"
+                    }`}
+                  >
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                        step === "payment" ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-600"
+                        step === "payment"
+                          ? "bg-blue-600 text-white"
+                          : "bg-slate-200 text-slate-600"
                       }`}
                     >
                       2
                     </div>
-                    <span className="font-medium hidden sm:inline">Payment</span>
+                    <span className="font-medium hidden sm:inline">
+                      Payment
+                    </span>
                   </div>
                 </div>
               </div>
@@ -659,13 +909,17 @@ export function DonatePage() {
                 <div className="p-6 md:p-8 space-y-6">
                   {/* Amount Selection */}
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">Donation Amount</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-3">
+                      Donation Amount
+                    </label>
                     <div className="grid grid-cols-3 gap-2 mb-3">
                       {SUGGESTED_AMOUNTS.map((amount) => (
                         <button
                           key={amount}
                           type="button"
-                          onClick={() => updateFormData({ amount: amount.toString() })}
+                          onClick={() =>
+                            updateFormData({ amount: amount.toString() })
+                          }
                           className={`py-3 px-4 rounded-xl font-semibold transition-all ${
                             formData.amount === amount.toString()
                               ? "bg-blue-600 text-white shadow-lg scale-105"
@@ -680,7 +934,9 @@ export function DonatePage() {
                     <div className="flex gap-3">
                       <select
                         value={formData.currency}
-                        onChange={(e) => updateFormData({ currency: e.target.value })}
+                        onChange={(e) =>
+                          updateFormData({ currency: e.target.value })
+                        }
                         className="px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                       >
                         {CURRENCIES.map((currency) => (
@@ -694,7 +950,9 @@ export function DonatePage() {
                         min="1"
                         placeholder="Custom amount"
                         value={formData.amount}
-                        onChange={(e) => updateFormData({ amount: e.target.value })}
+                        onChange={(e) =>
+                          updateFormData({ amount: e.target.value })
+                        }
                         className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
@@ -702,13 +960,17 @@ export function DonatePage() {
 
                   {/* Frequency */}
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">Donation Frequency</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-3">
+                      Donation Frequency
+                    </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {DONATION_FREQUENCIES.map((freq) => (
                         <button
                           key={freq.value}
                           type="button"
-                          onClick={() => updateFormData({ frequency: freq.value })}
+                          onClick={() =>
+                            updateFormData({ frequency: freq.value })
+                          }
                           className={`py-2 px-4 rounded-xl text-sm font-medium transition-all ${
                             formData.frequency === freq.value
                               ? "bg-blue-600 text-white"
@@ -723,24 +985,34 @@ export function DonatePage() {
 
                   {/* Donor Info */}
                   <div className="space-y-4">
-                    <h3 className="text-sm font-semibold text-slate-700">Your Information</h3>
+                    <h3 className="text-sm font-semibold text-slate-700">
+                      Your Information
+                    </h3>
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm text-slate-600 mb-1">Full Name *</label>
+                        <label className="block text-sm text-slate-600 mb-1">
+                          Full Name *
+                        </label>
                         <input
                           type="text"
                           value={formData.donor.name}
-                          onChange={(e) => updateDonorInfo({ name: e.target.value })}
+                          onChange={(e) =>
+                            updateDonorInfo({ name: e.target.value })
+                          }
                           className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="John Doe"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm text-slate-600 mb-1">Email *</label>
+                        <label className="block text-sm text-slate-600 mb-1">
+                          Email *
+                        </label>
                         <input
                           type="email"
                           value={formData.donor.email}
-                          onChange={(e) => updateDonorInfo({ email: e.target.value })}
+                          onChange={(e) =>
+                            updateDonorInfo({ email: e.target.value })
+                          }
                           className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="john@example.com"
                         />
@@ -750,54 +1022,77 @@ export function DonatePage() {
                       <input
                         type="checkbox"
                         checked={formData.donor.is_anonymous}
-                        onChange={(e) => updateDonorInfo({ is_anonymous: e.target.checked })}
+                        onChange={(e) =>
+                          updateDonorInfo({ is_anonymous: e.target.checked })
+                        }
                         className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="text-sm text-slate-600">Make my donation anonymous</span>
+                      <span className="text-sm text-slate-600">
+                        Make my donation anonymous
+                      </span>
                     </label>
                   </div>
 
                   {/* Payment Method */}
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">Payment Method</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-3">
+                      Payment Method
+                    </label>
                     <div className="grid sm:grid-cols-2 gap-3">
-                      {PAYMENT_METHODS.filter((m) => m.available).map((method) => (
-                        <label
-                          key={method.id}
-                          className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                            formData.payment_method === method.id
-                              ? "border-blue-500 bg-blue-50"
-                              : "border-slate-200 hover:border-blue-300"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="payment_method"
-                            value={method.id}
-                            checked={formData.payment_method === method.id}
-                            onChange={(e) => updateFormData({ payment_method: e.target.value as PaymentMethod })}
-                            className="sr-only"
-                          />
-                          <div className="flex-shrink-0">{renderPaymentMethodIcon(method.id)}</div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-slate-900">{method.name}</p>
-                            <p className="text-xs text-slate-500">{method.processingTime}</p>
-                          </div>
-                          {formData.payment_method === method.id && (
-                            <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                          )}
-                        </label>
-                      ))}
+                      {PAYMENT_METHODS.filter((m) => m.available).map(
+                        (method) => (
+                          <label
+                            key={method.id}
+                            className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                              formData.payment_method === method.id
+                                ? "border-blue-500 bg-blue-50"
+                                : "border-slate-200 hover:border-blue-300"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="payment_method"
+                              value={method.id}
+                              checked={formData.payment_method === method.id}
+                              onChange={(e) =>
+                                updateFormData({
+                                  payment_method: e.target
+                                    .value as PaymentMethod,
+                                })
+                              }
+                              className="sr-only"
+                            />
+                            <div className="flex-shrink-0">
+                              {renderPaymentMethodIcon(method.id)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-slate-900">
+                                {method.name}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {method.processingTime}
+                              </p>
+                            </div>
+                            {formData.payment_method === method.id && (
+                              <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                            )}
+                          </label>
+                        )
+                      )}
                     </div>
                   </div>
 
                   {/* Message */}
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Message (Optional)</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Message (Optional)
+                    </label>
                     <textarea
                       rows={3}
                       value={formData.message}
-                      onChange={(e) => updateFormData({ message: e.target.value })}
+                      onChange={(e) =>
+                        updateFormData({ message: e.target.value })
+                      }
                       className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                       placeholder="Share why you're donating..."
                     />
@@ -826,7 +1121,10 @@ export function DonatePage() {
 
               {/* Step 2: Payment Details */}
               {step === "payment" && (
-                <form onSubmit={handlePaymentSubmit} className="p-6 md:p-8 space-y-6">
+                <form
+                  onSubmit={handlePaymentSubmit}
+                  className="p-6 md:p-8 space-y-6"
+                >
                   {/* Order Summary */}
                   <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                     <div className="flex justify-between items-center mb-2">
@@ -839,31 +1137,44 @@ export function DonatePage() {
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-slate-500">Payment Method</span>
                       <span className="text-slate-700">
-                        {PAYMENT_METHODS.find((m) => m.id === formData.payment_method)?.name}
+                        {
+                          PAYMENT_METHODS.find(
+                            (m) => m.id === formData.payment_method
+                          )?.name
+                        }
                       </span>
                     </div>
                   </div>
 
                   {/* Mobile Money Form */}
-                  {(formData.payment_method === "mpesa" || formData.payment_method === "airtel_money") && (
+                  {(formData.payment_method === "mpesa" ||
+                    formData.payment_method === "airtel_money") && (
                     <div className="space-y-4">
                       <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
                         <Smartphone className="w-6 h-6 text-emerald-600" />
                         <div>
                           <p className="font-medium text-emerald-800">
-                            {formData.payment_method === "mpesa" ? "M-Pesa" : "Airtel Money"} Payment
+                            {formData.payment_method === "mpesa"
+                              ? "M-Pesa"
+                              : "Airtel Money"}{" "}
+                            Payment
                           </p>
                           <p className="text-sm text-emerald-600">
-                            You will receive a prompt on your phone to complete the payment
+                            You will receive a prompt on your phone to complete
+                            the payment
                           </p>
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Phone Number *</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          Phone Number *
+                        </label>
                         <input
                           type="tel"
                           value={mobileMoneyData.phone_number}
-                          onChange={(e) => setMobileMoneyData({ phone_number: e.target.value })}
+                          onChange={(e) =>
+                            setMobileMoneyData({ phone_number: e.target.value })
+                          }
                           className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="0712345678 or +254712345678"
                         />
@@ -877,80 +1188,87 @@ export function DonatePage() {
                       <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                         <CreditCard className="w-6 h-6 text-blue-600" />
                         <div>
-                          <p className="font-medium text-blue-800">Secure Card Payment</p>
-                          <p className="text-sm text-blue-600">Your card details are encrypted and secure</p>
+                          <p className="font-medium text-blue-800">
+                            Secure Card Payment
+                          </p>
+                          <p className="text-sm text-blue-600">
+                            Your card details are encrypted and secure
+                          </p>
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Card Number *</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          Card Number *
+                        </label>
                         <div className="relative">
                           <input
                             type="text"
                             value={cardData.card_number}
                             onChange={(e) =>
-                              setCardData({ ...cardData, card_number: formatCardNumber(e.target.value) })
+                              setCardData({
+                                ...cardData,
+                                card_number: formatCardNumber(e.target.value),
+                              })
                             }
-                            className="w-full px-4 py-3 pr-12 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                            className="w-full px-4 py-3 pr-16 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
                             placeholder="1234 5678 9012 3456"
                             maxLength={19}
                           />
-                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-lg">{cardInfo.icon}</span>
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                            {renderCardIcon()}
+                          </div>
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Cardholder Name *</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          Cardholder Name *
+                        </label>
                         <input
                           type="text"
                           value={cardData.card_holder_name}
-                          onChange={(e) => setCardData({ ...cardData, card_holder_name: e.target.value })}
+                          onChange={(e) =>
+                            setCardData({
+                              ...cardData,
+                              card_holder_name: e.target.value,
+                            })
+                          }
                           className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="JOHN DOE"
                         />
                       </div>
 
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-2">Month *</label>
-                          <select
-                            value={cardData.expiry_month}
-                            onChange={(e) => setCardData({ ...cardData, expiry_month: e.target.value })}
-                            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                          >
-                            <option value="">MM</option>
-                            {Array.from({ length: 12 }, (_, i) => (
-                              <option key={i + 1} value={String(i + 1).padStart(2, "0")}>
-                                {String(i + 1).padStart(2, "0")}
-                              </option>
-                            ))}
-                          </select>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Expiry Date *
+                          </label>
+                          <input
+                            type="text"
+                            value={expiryDate}
+                            onChange={(e) =>
+                              handleExpiryDateChange(e.target.value)
+                            }
+                            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                            placeholder="MM/YY"
+                            maxLength={5}
+                          />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-2">Year *</label>
-                          <select
-                            value={cardData.expiry_year}
-                            onChange={(e) => setCardData({ ...cardData, expiry_year: e.target.value })}
-                            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                          >
-                            <option value="">YY</option>
-                            {Array.from({ length: 10 }, (_, i) => {
-                              const year = new Date().getFullYear() + i
-                              return (
-                                <option key={year} value={String(year).slice(-2)}>
-                                  {year}
-                                </option>
-                              )
-                            })}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-2">CVV *</label>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">
+                            CVV *
+                          </label>
                           <input
                             type="text"
                             value={cardData.cvv}
                             onChange={(e) =>
-                              setCardData({ ...cardData, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) })
+                              setCardData({
+                                ...cardData,
+                                cvv: e.target.value
+                                  .replace(/\D/g, "")
+                                  .slice(0, 4),
+                              })
                             }
                             className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
                             placeholder="123"
@@ -966,9 +1284,12 @@ export function DonatePage() {
                     <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                       <Globe className="w-6 h-6 text-blue-700" />
                       <div>
-                        <p className="font-medium text-blue-800">PayPal Payment</p>
+                        <p className="font-medium text-blue-800">
+                          PayPal Payment
+                        </p>
                         <p className="text-sm text-blue-600">
-                          You will be redirected to PayPal to complete your payment
+                          You will be redirected to PayPal to complete your
+                          payment
                         </p>
                       </div>
                     </div>
@@ -979,9 +1300,12 @@ export function DonatePage() {
                     <div className="flex items-center gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl">
                       <Building2 className="w-6 h-6 text-slate-600" />
                       <div>
-                        <p className="font-medium text-slate-800">Bank Transfer</p>
+                        <p className="font-medium text-slate-800">
+                          Bank Transfer
+                        </p>
                         <p className="text-sm text-slate-600">
-                          You will receive bank account details to complete the transfer
+                          You will receive bank account details to complete the
+                          transfer
                         </p>
                       </div>
                     </div>
@@ -1037,18 +1361,25 @@ export function DonatePage() {
                   <Shield className="w-5 h-5 text-emerald-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900">Secure Donation</h3>
-                  <p className="text-sm text-slate-500">256-bit SSL encryption</p>
+                  <h3 className="font-semibold text-slate-900">
+                    Secure Donation
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    256-bit SSL encryption
+                  </p>
                 </div>
               </div>
               <p className="text-sm text-slate-600">
-                Your payment information is encrypted and secure. We never store your full card details.
+                Your payment information is encrypted and secure. We never store
+                your full card details.
               </p>
             </div>
 
             {/* Fund Allocation */}
             <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
-              <h3 className="font-semibold text-slate-900 mb-4">How Funds Are Used</h3>
+              <h3 className="font-semibold text-slate-900 mb-4">
+                How Funds Are Used
+              </h3>
               <div className="space-y-3">
                 {[
                   { label: "Tuition & Fees", percentage: 45 },
@@ -1059,7 +1390,9 @@ export function DonatePage() {
                   <div key={item.label}>
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-slate-600">{item.label}</span>
-                      <span className="font-medium text-slate-900">{item.percentage}%</span>
+                      <span className="font-medium text-slate-900">
+                        {item.percentage}%
+                      </span>
                     </div>
                     <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div
@@ -1074,17 +1407,19 @@ export function DonatePage() {
 
             {/* Tax Info */}
             <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
-              <h3 className="font-semibold text-blue-900 mb-2">Tax Deductible</h3>
+              <h3 className="font-semibold text-blue-900 mb-2">
+                Tax Deductible
+              </h3>
               <p className="text-sm text-blue-700">
-                DestinyPal is a registered non-profit. Your donation may be tax-deductible. You will receive a receipt
-                for your records.
+                DestinyPal is a registered non-profit. Your donation may be
+                tax-deductible. You will receive a receipt for your records.
               </p>
             </div>
           </div>
         </section>
       </div>
     </div>
-  )
+  );
 }
 
-export default DonatePage
+export default DonatePage;
