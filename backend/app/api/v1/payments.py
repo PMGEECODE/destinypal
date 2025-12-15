@@ -7,7 +7,7 @@ from uuid import UUID
 import secrets
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Request
 from sqlalchemy import select
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional
@@ -26,6 +26,7 @@ from app.schemas.payment import (
 )
 from app.core.deps import CurrentUser, DBSession, OptionalUser
 from app.core.config import settings
+from app.services.mpesa_service import mpesa_service
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -133,28 +134,106 @@ async def process_mpesa_payment(
             detail="Transaction not found",
         )
     
-    checkout_request_id = f"MPX{secrets.token_hex(12)}"
-    merchant_request_id = f"MRQ{secrets.token_hex(8)}"
+    mpesa_result = mpesa_service.initiate_stk_push(
+        phone_number=request.phone_number,
+        amount=request.amount,
+        account_reference=request.account_reference,
+        transaction_desc=request.transaction_desc
+    )
     
+    if not mpesa_result.get('success'):
+        # Mark transaction as failed
+        transaction.status = TransactionStatus.FAILED
+        transaction.failed_at = datetime.now(timezone.utc)
+        transaction.failure_reason = mpesa_result.get('message', 'M-Pesa payment failed')
+        await db.commit()
+        
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=mpesa_result.get('message', 'M-Pesa payment failed')
+        )
+    
+    # Update transaction with M-Pesa details
     transaction.status = TransactionStatus.PENDING
     transaction.phone_number = request.phone_number
     transaction.metadata = {
         **transaction.metadata,
-        "checkout_request_id": checkout_request_id,
-        "merchant_request_id": merchant_request_id,
+        "checkout_request_id": mpesa_result.get('checkout_request_id'),
+        "merchant_request_id": mpesa_result.get('merchant_request_id'),
         "account_reference": request.account_reference,
+        "response_code": mpesa_result.get('response_code'),
     }
     
     await db.commit()
     
-    logger.info(f"M-Pesa payment initiated: {transaction.reference_id}")
+    logger.info(f"M-Pesa payment initiated: {transaction.reference_id} - {mpesa_result.get('checkout_request_id')}")
     
     return MpesaPaymentResponse(
         success=True,
-        message="Payment request sent. Please check your phone to complete payment.",
-        checkout_request_id=checkout_request_id,
-        merchant_request_id=merchant_request_id,
+        message=mpesa_result.get('message', 'Payment request sent. Please check your phone.'),
+        checkout_request_id=mpesa_result.get('checkout_request_id'),
+        merchant_request_id=mpesa_result.get('merchant_request_id'),
     )
+
+
+@router.post("/mpesa/callback")
+async def mpesa_callback(
+    request: Request,
+    db: DBSession,
+):
+    """
+    M-Pesa callback endpoint.
+    Safaricom calls this endpoint when payment is completed/failed.
+    """
+    try:
+        callback_data = await request.json()
+        logger.info(f"M-Pesa callback received: {callback_data}")
+        
+        # Process callback
+        processed = mpesa_service.process_callback(callback_data)
+        
+        if not processed.get('checkout_request_id'):
+            logger.warning("No checkout_request_id in callback")
+            return {"ResultCode": 0, "ResultDesc": "Accepted"}
+        
+        # Find transaction by checkout_request_id
+        result = await db.execute(
+            select(PaymentTransaction).where(
+                PaymentTransaction.metadata['checkout_request_id'].astext == processed['checkout_request_id']
+            )
+        )
+        transaction = result.scalar_one_or_none()
+        
+        if not transaction:
+            logger.warning(f"Transaction not found for checkout_request_id: {processed['checkout_request_id']}")
+            return {"ResultCode": 0, "ResultDesc": "Accepted"}
+        
+        # Update transaction based on result
+        if processed.get('success') and processed.get('result_code') == 0:
+            transaction.status = TransactionStatus.COMPLETED
+            transaction.completed_at = datetime.now(timezone.utc)
+            transaction.metadata = {
+                **transaction.metadata,
+                "mpesa_receipt_number": processed.get('mpesa_receipt_number'),
+                "transaction_date": processed.get('transaction_date'),
+                "result_desc": processed.get('result_desc'),
+            }
+            logger.info(f"M-Pesa payment completed: {transaction.reference_id} - Receipt: {processed.get('mpesa_receipt_number')}")
+        else:
+            transaction.status = TransactionStatus.FAILED
+            transaction.failed_at = datetime.now(timezone.utc)
+            transaction.failure_reason = processed.get('result_desc', 'Payment failed')
+            logger.warning(f"M-Pesa payment failed: {transaction.reference_id} - {transaction.failure_reason}")
+        
+        await db.commit()
+        
+        # Return success response to M-Pesa
+        return {"ResultCode": 0, "ResultDesc": "Accepted"}
+        
+    except Exception as e:
+        logger.error(f"Error processing M-Pesa callback: {str(e)}", exc_info=True)
+        # Always return success to M-Pesa to avoid retries
+        return {"ResultCode": 0, "ResultDesc": "Accepted"}
 
 
 @router.post("/airtel/process", response_model=AirtelPaymentResponse)

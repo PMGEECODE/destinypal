@@ -1,3 +1,29 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer utilities {
+  /* Added infinite scroll animations for landing page */
+  @keyframes scroll-rtl {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-33.333%);
+    }
+  }
+
+  .animate-scroll-rtl {
+    animation: scroll-rtl 40s linear infinite;
+  }
+
+  .animate-scroll-rtl-fast {
+    animation: scroll-rtl 25s linear infinite;
+  }
+
+  /* Pause animation on hover */
+  .animate-scroll-rtl:hover,
+  .animate-scroll-rtl-fast:hover {
+    animation-play-state: paused;
+  }
+}

@@ -759,8 +759,8 @@ export function LandingPage({
           {/* Mobile Layout - Compact and left-aligned */}
           <div className="md:hidden space-y-8">
             {/* Logo and Description - centered (as in reference image) */}
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-3">
+            <div className="text-justify">
+              <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-lg flex items-center justify-center">
                   <Heart className="w-4 h-4 text-slate-800 fill-slate-800" />
                 </div>

@@ -84,6 +84,7 @@ class Settings(BaseSettings):
     MPESA_PASSKEY: str
     MPESA_SHORTCODE: str
     MPESA_CALLBACK_URL: str
+    MPESA_ENVIRONMENT: str = Field(default="sandbox", pattern="^(sandbox|production)$")
 
     # Airtel Money
     AIRTEL_CLIENT_ID: str
@@ -109,3 +110,6 @@ class Settings(BaseSettings):
 
 # Lazy-loaded settings
 settings = Settings()
+def get_settings() -> Settings:
+    """Get application settings (for dependency injection)."""
+    return settings
