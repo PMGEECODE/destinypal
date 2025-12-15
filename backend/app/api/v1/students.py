@@ -4,6 +4,7 @@ Student management API routes.
 from typing import List, Optional
 from uuid import UUID
 import os
+from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, status, Query, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
@@ -15,7 +16,7 @@ from app.models.student import Student, StudentDocument, StudentFeeBalance, Docu
 from app.models.institution import Institution
 from app.models.sponsorship import Sponsorship
 from app.models.sponsor import Sponsor
-from app.models.payment import PaymentAccount
+from app.models.payment import PaymentAccount, Payment
 from app.schemas.student import (
     StudentCreate,
     StudentUpdate,
@@ -24,7 +25,6 @@ from app.schemas.student import (
     StudentDocumentResponse,
     StudentFeeBalanceResponse,
     StudentSponsorshipResponse,
-    StudentDocumentCreate,
 )
 from app.schemas.payment import PaymentAccountResponse
 from app.core.deps import CurrentUser, AdminUser, DBSession
@@ -226,7 +226,10 @@ async def update_student(
     """Update student details."""
     result = await db.execute(
         select(Student)
-        .options(selectinload(Student.institution))
+        .options(
+            selectinload(Student.institution),
+            selectinload(Student.fee_balance)
+        )
         .where(Student.id == student_id)
     )
     student = result.scalar_one_or_none()
@@ -732,3 +735,130 @@ async def get_student_payment_accounts(
         select(PaymentAccount).where(PaymentAccount.student_id == student_id)
     )
     return result.scalars().all()
+
+@router.get("/{student_id}/payments", response_model=List[dict])
+async def get_student_payments(
+    student_id: UUID,
+    db: DBSession,
+    current_user: CurrentUser,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+):
+    """Get student's payment history."""
+    from app.models.payment import Payment
+    from app.models.sponsorship import Sponsorship
+    from app.models.sponsor import Sponsor
+    
+    # Verify student exists
+    result = await db.execute(select(Student).where(Student.id == student_id))
+    student = result.scalar_one_or_none()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    # Get payments related to this student through sponsorships
+    query = (
+        select(Payment, Sponsorship, Sponsor)
+        .join(Sponsorship, Payment.sponsorship_id == Sponsorship.id, isouter=True)
+        .join(Sponsor, Sponsorship.sponsor_id == Sponsor.id, isouter=True)
+        .where(Sponsorship.student_id == student_id)
+        .order_by(Payment.payment_date.desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    
+    result = await db.execute(query)
+    payment_rows = result.all()
+    
+    payments_list = []
+    for payment, sponsorship, sponsor in payment_rows:
+        payments_list.append({
+            "id": str(payment.id),
+            "amount": float(payment.amount),
+            "payment_method": payment.payment_method,
+            "payment_date": payment.payment_date.isoformat() if payment.payment_date else None,
+            "status": payment.status,
+            "reference_id": payment.reference_id,
+            "sponsor_name": sponsor.organization_name if sponsor else None,
+            "sponsorship_id": str(sponsorship.id) if sponsorship else None,
+            "created_at": payment.created_at.isoformat(),
+        })
+    
+    return payments_list
+
+@router.patch("/{student_id}/fee-balance/{balance_id}", response_model=StudentFeeBalanceResponse)
+async def update_student_fee_balance(
+    student_id: UUID,
+    balance_id: UUID,
+    updates: dict,
+    db: DBSession,
+    current_user: CurrentUser,
+):
+    """Update student fee balance with term-based fees."""
+    result = await db.execute(
+        select(StudentFeeBalance).where(
+            StudentFeeBalance.id == balance_id,
+            StudentFeeBalance.student_id == student_id
+        )
+    )
+    fee_balance = result.scalar_one_or_none()
+    
+    if not fee_balance:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Fee balance not found",
+        )
+    
+    # Check authorization - student or their institution can update
+    student_result = await db.execute(
+        select(Student)
+        .options(selectinload(Student.institution))
+        .where(Student.id == student_id)
+    )
+    student = student_result.scalar_one_or_none()
+    
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Student not found",
+        )
+    
+    # Authorization check
+    if current_user.role.value == "student":
+        if student.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to update this fee balance",
+            )
+    elif current_user.role.value == "institution":
+        if student.institution.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to update this fee balance",
+            )
+    
+    # Apply updates
+    for key, value in updates.items():
+        if hasattr(fee_balance, key):
+            setattr(fee_balance, key, value)
+    
+    # Recalculate balance_due from total_fees and amount_paid
+    if 'total_fees' in updates or 'amount_paid' in updates:
+        fee_balance.balance_due = fee_balance.total_fees - fee_balance.amount_paid
+    
+    fee_balance.last_updated = datetime.utcnow()
+    
+    await db.commit()
+    await db.refresh(fee_balance)
+    return fee_balance
+
+
+@router.patch("/{student_id}/fee-balances/{balance_id}", response_model=StudentFeeBalanceResponse)
+async def update_student_fee_balance_plural(
+    student_id: UUID,
+    balance_id: UUID,
+    updates: dict,
+    db: DBSession,
+    current_user: CurrentUser,
+):
+    """Update student fee balance (plural route alias for compatibility)."""
+    return await update_student_fee_balance(student_id, balance_id, updates, db, current_user)

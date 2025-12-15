@@ -170,4 +170,4 @@ export const PASSWORD_REQUIREMENTS = {
 
 // Verification codes
 export const VERIFICATION_CODE_LENGTH = 6
-export const VERIFICATION_RESEND_COOLDOWN = 60 // in seconds
+export const VERIFICATION_RESEND_COOLDOWN = 60 

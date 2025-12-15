@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useRef, useEffect, useCallback } from "react"
+import type React from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Heart,
   Mail,
@@ -21,12 +21,18 @@ import {
   Linkedin,
   Youtube,
   Instagram,
-} from "lucide-react"
-import type { ContactFormData, ContactInfoItem, InquiryTypeOption, ContactAPIResponse } from "../../types/contact"
-import type { TurnstileRenderOptions } from "../../types/cloudflare-turnstile"
-import { apiClient, ApiError } from "../../lib/api/client"
+} from "lucide-react";
+import type {
+  ContactFormData,
+  ContactInfoItem,
+  InquiryTypeOption,
+  ContactAPIResponse,
+} from "../../types/contact";
+import type { TurnstileRenderOptions } from "../../types/cloudflare-turnstile";
+import { apiClient, ApiError } from "../../lib/api/client";
 
-const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "0x4AAAAAACFgSmAHFnDJWO6Q"
+const TURNSTILE_SITE_KEY =
+  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "0x4AAAAAACFgSmAHFnDJWO6Q";
 
 const CONTACT_INFO: ContactInfoItem[] = [
   {
@@ -53,14 +59,14 @@ const CONTACT_INFO: ContactInfoItem[] = [
     value: "Mon-Fri: 9am-6pm",
     description: "Sat: 10am-2pm",
   },
-]
+];
 
 const INQUIRY_TYPES: InquiryTypeOption[] = [
   { value: "general", label: "General Inquiry", icon: MessageSquare },
   { value: "sponsor", label: "Sponsorship", icon: Heart },
   { value: "institution", label: "Partnership", icon: Building2 },
   { value: "student", label: "Student Support", icon: Users },
-]
+];
 
 const INITIAL_FORM_DATA: ContactFormData = {
   name: "",
@@ -69,23 +75,27 @@ const INITIAL_FORM_DATA: ContactFormData = {
   inquiryType: "general",
   subject: "",
   message: "",
-}
+};
 
 export function Contact(): React.JSX.Element {
-  const [formData, setFormData] = useState<ContactFormData>(INITIAL_FORM_DATA)
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
-  const [isSubmitted, setIsSubmitted] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
-  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false)
-  const [turnstileReady, setTurnstileReady] = useState<boolean>(false)
+  const [formData, setFormData] = useState<ContactFormData>(INITIAL_FORM_DATA);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
+  const [turnstileReady, setTurnstileReady] = useState<boolean>(false);
 
-  const turnstileContainerRef = useRef<HTMLDivElement>(null)
-  const turnstileWidgetId = useRef<string | null>(null)
-  const isMountedRef = useRef<boolean>(true)
+  const turnstileContainerRef = useRef<HTMLDivElement>(null);
+  const turnstileWidgetId = useRef<string | null>(null);
+  const isMountedRef = useRef<boolean>(true);
 
   const renderTurnstileWidget = useCallback((): void => {
-    if (!turnstileContainerRef.current || !window.turnstile || turnstileWidgetId.current) {
-      return
+    if (
+      !turnstileContainerRef.current ||
+      !window.turnstile ||
+      turnstileWidgetId.current
+    ) {
+      return;
     }
 
     try {
@@ -93,120 +103,130 @@ export function Contact(): React.JSX.Element {
         sitekey: TURNSTILE_SITE_KEY,
         callback: () => {
           if (isMountedRef.current) {
-            setTurnstileReady(true)
+            setTurnstileReady(true);
           }
         },
         "error-callback": () => {
           if (isMountedRef.current) {
-            setError("Verification widget failed to load. Please refresh.")
-            setTurnstileReady(false)
+            setError("Verification widget failed to load. Please refresh.");
+            setTurnstileReady(false);
           }
         },
         "expired-callback": () => {
           if (isMountedRef.current) {
-            setTurnstileReady(false)
+            setTurnstileReady(false);
           }
         },
         theme: "light",
         size: "normal",
-      }
+      };
 
-      turnstileWidgetId.current = window.turnstile.render(turnstileContainerRef.current, options)
+      turnstileWidgetId.current = window.turnstile.render(
+        turnstileContainerRef.current,
+        options
+      );
     } catch (err) {
-      console.error("Failed to render Turnstile widget:", err)
+      console.error("Failed to render Turnstile widget:", err);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    isMountedRef.current = true
-    const scriptId = "cf-turnstile-script"
-    let script = document.getElementById(scriptId) as HTMLScriptElement | null
+    isMountedRef.current = true;
+    const scriptId = "cf-turnstile-script";
+    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
 
     const handleScriptLoad = (): void => {
       // Small delay to ensure turnstile is fully initialized
       requestAnimationFrame(() => {
         if (isMountedRef.current) {
-          renderTurnstileWidget()
+          renderTurnstileWidget();
         }
-      })
-    }
+      });
+    };
 
     if (!script) {
-      script = document.createElement("script")
-      script.id = scriptId
-      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
-      script.async = true
-      script.defer = true
-      script.onload = handleScriptLoad
+      script = document.createElement("script");
+      script.id = scriptId;
+      script.src =
+        "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      script.async = true;
+      script.defer = true;
+      script.onload = handleScriptLoad;
       script.onerror = () => {
         if (isMountedRef.current) {
-          setError("Failed to load verification. Please refresh the page.")
+          setError("Failed to load verification. Please refresh the page.");
         }
-      }
-      document.head.appendChild(script)
+      };
+      document.head.appendChild(script);
     } else if (window.turnstile) {
       // Script already loaded, render immediately
-      handleScriptLoad()
+      handleScriptLoad();
     } else {
       // Script exists but not loaded yet, wait for it
-      script.addEventListener("load", handleScriptLoad)
+      script.addEventListener("load", handleScriptLoad);
     }
 
     return () => {
-      isMountedRef.current = false
+      isMountedRef.current = false;
       if (turnstileWidgetId.current && window.turnstile) {
         try {
-          window.turnstile.remove(turnstileWidgetId.current)
+          window.turnstile.remove(turnstileWidgetId.current);
         } catch {
           // Widget may already be removed
         }
-        turnstileWidgetId.current = null
+        turnstileWidgetId.current = null;
       }
-    }
-  }, [renderTurnstileWidget])
+    };
+  }, [renderTurnstileWidget]);
 
   const resetTurnstile = useCallback((): void => {
     if (turnstileWidgetId.current && window.turnstile) {
       try {
-        window.turnstile.reset(turnstileWidgetId.current)
-        setTurnstileReady(false)
+        window.turnstile.reset(turnstileWidgetId.current);
+        setTurnstileReady(false);
       } catch {
         // Widget may not exist
       }
     }
-  }, [])
+  }, []);
 
   const handleInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>): void => {
-      const { name, value } = e.target
+    (
+      e: React.ChangeEvent<
+        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      >
+    ): void => {
+      const { name, value } = e.target;
       setFormData((prev) => ({
         ...prev,
         [name]: value,
-      }))
+      }));
     },
-    [],
-  )
+    []
+  );
 
   const handleResetForm = useCallback((): void => {
-    setIsSubmitted(false)
-    setFormData(INITIAL_FORM_DATA)
-    setError(null)
-    resetTurnstile()
-  }, [resetTurnstile])
+    setIsSubmitted(false);
+    setFormData(INITIAL_FORM_DATA);
+    setError(null);
+    resetTurnstile();
+  }, [resetTurnstile]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
-      e.preventDefault()
-      setIsSubmitting(true)
-      setError(null)
+      e.preventDefault();
+      setIsSubmitting(true);
+      setError(null);
 
       // Get Turnstile token
-      const token = turnstileWidgetId.current ? window.turnstile?.getResponse(turnstileWidgetId.current) : undefined
+      const token = turnstileWidgetId.current
+        ? window.turnstile?.getResponse(turnstileWidgetId.current)
+        : undefined;
 
       if (!token) {
-        setError("Please complete the verification challenge.")
-        setIsSubmitting(false)
-        return
+        setError("Please complete the verification challenge.");
+        setIsSubmitting(false);
+        return;
       }
 
       const payload = {
@@ -217,48 +237,51 @@ export function Contact(): React.JSX.Element {
         subject: formData.subject, // Added missing subject field required by backend
         message: formData.message,
         cf_turnstile_response: token,
-      }
+      };
 
       try {
-        console.log("[v0] Submitting contact form with payload:", payload)
-        const response = await apiClient.post<ContactAPIResponse>("/contact", payload)
-        console.log("[v0] Contact form submission successful:", response)
+        console.log("[v0] Submitting contact form with payload:", payload);
+        const response = await apiClient.post<ContactAPIResponse>(
+          "/contact",
+          payload
+        );
+        console.log("[v0] Contact form submission successful:", response);
 
         if (isMountedRef.current) {
-          setIsSubmitted(true)
-          resetTurnstile()
+          setIsSubmitted(true);
+          resetTurnstile();
         }
       } catch (err) {
-        console.log("[v0] Contact form submission error:", err)
-        console.log("[v0] Error type:", err?.constructor?.name)
+        console.log("[v0] Contact form submission error:", err);
+        console.log("[v0] Error type:", err?.constructor?.name);
         if (err instanceof ApiError) {
-          console.log("[v0] ApiError status:", err.status)
-          console.log("[v0] ApiError message:", err.message)
-          console.log("[v0] ApiError data:", err.data)
+          console.log("[v0] ApiError status:", err.status);
+          console.log("[v0] ApiError message:", err.message);
+          console.log("[v0] ApiError data:", err.data);
         }
 
         if (isMountedRef.current) {
-          let errorMessage = "Failed to send message. Please try again later."
+          let errorMessage = "Failed to send message. Please try again later.";
           if (err instanceof ApiError) {
-            errorMessage = err.message || errorMessage
+            errorMessage = err.message || errorMessage;
           } else if (err instanceof Error) {
-            errorMessage = err.message
+            errorMessage = err.message;
           }
-          setError(errorMessage)
-          resetTurnstile()
+          setError(errorMessage);
+          resetTurnstile();
         }
       } finally {
         if (isMountedRef.current) {
-          setIsSubmitting(false)
+          setIsSubmitting(false);
         }
       }
     },
-    [formData, resetTurnstile],
-  )
+    [formData, resetTurnstile]
+  );
 
   const toggleMenu = useCallback((): void => {
-    setIsMenuOpen((prev) => !prev)
-  }, [])
+    setIsMenuOpen((prev) => !prev);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -270,17 +293,28 @@ export function Contact(): React.JSX.Element {
               <div className="w-8 h-8 bg-gradient-to-br from-slate-700 to-slate-800 rounded-lg flex items-center justify-center">
                 <Heart className="w-5 h-5 text-yellow-400 fill-yellow-400" />
               </div>
-              <span className="text-lg font-bold text-gray-900">DestinyPal</span>
+              <span className="text-lg font-bold text-gray-900">
+                DestinyPal
+              </span>
             </div>
 
             <nav className="hidden md:flex items-center gap-6">
-              <a href="/" className="text-sm font-medium text-gray-700 hover:text-slate-700 transition-colors">
+              <a
+                href="/"
+                className="text-sm font-medium text-gray-700 hover:text-slate-700 transition-colors"
+              >
                 Home
               </a>
-              <a href="/about" className="text-sm font-medium text-gray-700 hover:text-slate-700 transition-colors">
+              <a
+                href="/about"
+                className="text-sm font-medium text-gray-700 hover:text-slate-700 transition-colors"
+              >
                 About
               </a>
-              <a href="/students" className="text-sm font-medium text-gray-700 hover:text-slate-700 transition-colors">
+              <a
+                href="/students"
+                className="text-sm font-medium text-gray-700 hover:text-slate-700 transition-colors"
+              >
                 Students
               </a>
               <a href="/contact" className="text-sm font-medium text-slate-700">
@@ -301,14 +335,21 @@ export function Contact(): React.JSX.Element {
               aria-label="Toggle menu"
               aria-expanded={isMenuOpen}
             >
-              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {isMenuOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
             </button>
           </div>
 
           {isMenuOpen && (
             <nav className="md:hidden py-4 border-t border-gray-200">
               <div className="flex flex-col gap-3">
-                <a href="/" className="text-sm font-medium text-gray-700 hover:text-slate-700 transition-colors py-2">
+                <a
+                  href="/"
+                  className="text-sm font-medium text-gray-700 hover:text-slate-700 transition-colors py-2"
+                >
                   Home
                 </a>
                 <a
@@ -323,7 +364,10 @@ export function Contact(): React.JSX.Element {
                 >
                   Students
                 </a>
-                <a href="/contact" className="text-sm font-medium text-slate-700 py-2">
+                <a
+                  href="/contact"
+                  className="text-sm font-medium text-slate-700 py-2"
+                >
                   Contact
                 </a>
                 <button
@@ -342,10 +386,15 @@ export function Contact(): React.JSX.Element {
       <section className="bg-gradient-to-br from-slate-800 to-slate-900 py-8 md:py-12">
         <div className="container mx-auto px-4">
           <div className="text-center">
-            <p className="text-yellow-400 text-xs md:text-sm mb-2">We'd Love to Hear From You</p>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3">Contact Us</h1>
+            <p className="text-yellow-400 text-xs md:text-sm mb-2">
+              We'd Love to Hear From You
+            </p>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3">
+              Contact Us
+            </h1>
             <p className="text-sm text-gray-300 max-w-2xl mx-auto">
-              Questions about sponsoring a student or partnering with us? We're here to help.
+              Questions about sponsoring a student or partnering with us? We're
+              here to help.
             </p>
           </div>
         </div>
@@ -356,7 +405,7 @@ export function Contact(): React.JSX.Element {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 max-w-5xl mx-auto -mt-16">
             {CONTACT_INFO.map((info) => {
-              const Icon = info.icon
+              const Icon = info.icon;
               return (
                 <div
                   key={info.title}
@@ -365,11 +414,15 @@ export function Contact(): React.JSX.Element {
                   <div className="inline-flex items-center justify-center w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-slate-700 to-slate-800 text-yellow-400 rounded-lg mb-2 md:mb-3">
                     <Icon className="w-4 h-4 md:w-5 md:h-5" />
                   </div>
-                  <h3 className="font-bold text-gray-900 text-xs md:text-sm mb-0.5">{info.title}</h3>
-                  <p className="text-slate-700 font-medium text-xs md:text-sm mb-0.5">{info.value}</p>
+                  <h3 className="font-bold text-gray-900 text-xs md:text-sm mb-0.5">
+                    {info.title}
+                  </h3>
+                  <p className="text-slate-700 font-medium text-xs md:text-sm mb-0.5">
+                    {info.value}
+                  </p>
                   <p className="text-xs text-gray-600">{info.description}</p>
                 </div>
-              )
+              );
             })}
           </div>
         </div>
@@ -381,7 +434,9 @@ export function Contact(): React.JSX.Element {
           <div className="grid lg:grid-cols-2 gap-6 max-w-5xl mx-auto">
             {/* Contact Form */}
             <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
-              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-1">Send us a Message</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-1">
+                Send us a Message
+              </h2>
               <div className="w-12 h-1 bg-gradient-to-r from-slate-700 to-yellow-400 rounded-full mb-4" />
 
               {isSubmitted ? (
@@ -389,9 +444,12 @@ export function Contact(): React.JSX.Element {
                   <div className="inline-flex items-center justify-center w-12 h-12 md:w-14 md:h-14 bg-green-100 text-green-600 rounded-full mb-3">
                     <CheckCircle className="w-6 h-6 md:w-7 md:h-7" />
                   </div>
-                  <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">Message Sent!</h3>
+                  <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">
+                    Message Sent!
+                  </h3>
                   <p className="text-sm text-gray-600 mb-4">
-                    Thank you for reaching out. We'll get back to you within 24 hours.
+                    Thank you for reaching out. We'll get back to you within 24
+                    hours.
                   </p>
                   <button
                     type="button"
@@ -406,7 +464,10 @@ export function Contact(): React.JSX.Element {
                   {/* Name & Email */}
                   <div className="grid md:grid-cols-2 gap-3">
                     <div>
-                      <label htmlFor="name" className="block text-xs font-medium text-gray-900 mb-1">
+                      <label
+                        htmlFor="name"
+                        className="block text-xs font-medium text-gray-900 mb-1"
+                      >
                         Full Name *
                       </label>
                       <input
@@ -423,7 +484,10 @@ export function Contact(): React.JSX.Element {
                       />
                     </div>
                     <div>
-                      <label htmlFor="email" className="block text-xs font-medium text-gray-900 mb-1">
+                      <label
+                        htmlFor="email"
+                        className="block text-xs font-medium text-gray-900 mb-1"
+                      >
                         Email Address *
                       </label>
                       <input
@@ -442,7 +506,10 @@ export function Contact(): React.JSX.Element {
                   {/* Phone & Inquiry Type */}
                   <div className="grid md:grid-cols-2 gap-3">
                     <div>
-                      <label htmlFor="phone" className="block text-xs font-medium text-gray-900 mb-1">
+                      <label
+                        htmlFor="phone"
+                        className="block text-xs font-medium text-gray-900 mb-1"
+                      >
                         Phone Number
                       </label>
                       <input
@@ -457,7 +524,10 @@ export function Contact(): React.JSX.Element {
                       />
                     </div>
                     <div>
-                      <label htmlFor="inquiryType" className="block text-xs font-medium text-gray-900 mb-1">
+                      <label
+                        htmlFor="inquiryType"
+                        className="block text-xs font-medium text-gray-900 mb-1"
+                      >
                         Inquiry Type *
                       </label>
                       <select
@@ -479,7 +549,10 @@ export function Contact(): React.JSX.Element {
 
                   {/* Subject */}
                   <div>
-                    <label htmlFor="subject" className="block text-xs font-medium text-gray-900 mb-1">
+                    <label
+                      htmlFor="subject"
+                      className="block text-xs font-medium text-gray-900 mb-1"
+                    >
                       Subject *
                     </label>
                     <input
@@ -498,7 +571,10 @@ export function Contact(): React.JSX.Element {
 
                   {/* Message */}
                   <div>
-                    <label htmlFor="message" className="block text-xs font-medium text-gray-900 mb-1">
+                    <label
+                      htmlFor="message"
+                      className="block text-xs font-medium text-gray-900 mb-1"
+                    >
                       Message *
                     </label>
                     <textarea
@@ -516,13 +592,24 @@ export function Contact(): React.JSX.Element {
                   </div>
 
                   <div className="my-4">
-                    <div ref={turnstileContainerRef} className="cf-turnstile" aria-label="Security verification" />
-                    {!turnstileReady && !error && <p className="text-xs text-gray-500 mt-2">Loading verification...</p>}
+                    <div
+                      ref={turnstileContainerRef}
+                      className="cf-turnstile"
+                      aria-label="Security verification"
+                    />
+                    {!turnstileReady && !error && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Loading verification...
+                      </p>
+                    )}
                   </div>
 
                   {/* Error Message */}
                   {error && (
-                    <div className="text-red-600 text-sm font-medium text-center" role="alert">
+                    <div
+                      className="text-red-600 text-sm font-medium text-center"
+                      role="alert"
+                    >
                       {error}
                     </div>
                   )}
@@ -556,7 +643,9 @@ export function Contact(): React.JSX.Element {
                 <div className="aspect-[4/3] bg-gray-100 flex items-center justify-center">
                   <div className="text-center p-6">
                     <MapPin className="w-10 h-10 text-slate-700 mx-auto mb-3" />
-                    <h3 className="text-base font-semibold text-gray-900 mb-1">Our Location</h3>
+                    <h3 className="text-base font-semibold text-gray-900 mb-1">
+                      Our Location
+                    </h3>
                     <p className="text-sm text-gray-600">
                       ABC Place, 5th Floor
                       <br />
@@ -570,26 +659,43 @@ export function Contact(): React.JSX.Element {
 
               {/* FAQ Card */}
               <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4 md:p-5 shadow-sm border border-slate-200">
-                <h3 className="text-base font-semibold text-gray-900 mb-2">Have Questions?</h3>
+                <h3 className="text-base font-semibold text-gray-900 mb-2">
+                  Have Questions?
+                </h3>
                 <p className="text-sm text-gray-600 mb-3">
-                  Check out our FAQ page for answers to commonly asked questions about sponsorships and donations.
+                  Check out our FAQ page for answers to commonly asked questions
+                  about sponsorships and donations.
                 </p>
                 <a
                   href="/faq"
                   className="inline-flex items-center gap-1.5 text-sm text-slate-700 font-medium hover:text-yellow-600 transition-colors"
                 >
                   Visit our FAQ page
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
                   </svg>
                 </a>
               </div>
 
               {/* Quick Support */}
               <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 md:p-5 shadow-sm border border-yellow-200">
-                <h3 className="text-base font-semibold text-gray-900 mb-2">Quick Support</h3>
+                <h3 className="text-base font-semibold text-gray-900 mb-2">
+                  Quick Support
+                </h3>
                 <p className="text-sm text-gray-600 mb-3">
-                  Need immediate assistance? Our support team is available to help you right away.
+                  Need immediate assistance? Our support team is available to
+                  help you right away.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <a
@@ -611,118 +717,324 @@ export function Contact(): React.JSX.Element {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gradient-to-br from-slate-800 to-slate-900 pt-8 md:pt-12 pb-4 md:pb-6">
+      <footer className="bg-gradient-to-br from-slate-800 to-slate-900 pt-6 md:pt-12 pb-4 md:pb-6">
         <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-8">
+          {/* Mobile Layout - Compact, left-aligned */}
+          <div className="md:hidden space-y-8">
+            {/* Logo and Description - centered */}
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="w-7 h-7 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-lg flex items-center justify-center">
+                  <Heart
+                    className="w-4 h-4 text-slate-800 fill-slate-800"
+                    aria-hidden="true"
+                  />
+                </div>
+                <span className="text-base font-bold text-white">
+                  DestinyPal
+                </span>
+              </div>
+              <p className="text-sm text-gray-400 leading-relaxed max-w-sm mx-auto">
+                DestinyPal empowers underprivileged individuals and communities
+                through education, youth development, and community support
+                programs.
+              </p>
+            </div>
+
+            {/* Useful Links and Get In Touch - two columns, left-aligned */}
+            <div className="grid grid-cols-2 gap-6">
+              {/* Useful Links */}
+              <div>
+                <h3 className="text-white font-semibold mb-3 text-sm">
+                  Useful Links
+                </h3>
+                <nav aria-label="Footer navigation">
+                  <ul className="space-y-2">
+                    <li>
+                      <a
+                        href="/sponsor"
+                        className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                        aria-label="Sponsor a Student"
+                      >
+                        Sponsor a Student
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        href="/donate"
+                        className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                        aria-label="Make a Donation"
+                      >
+                        Make a Donation
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        href="/career"
+                        className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                        aria-label="Career opportunities"
+                      >
+                        Career
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        href="/news"
+                        className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                        aria-label="News and Updates"
+                      >
+                        News and Updates
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        href="/contact"
+                        className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                        aria-label="Contact Us"
+                      >
+                        Contact Us
+                      </a>
+                    </li>
+                  </ul>
+                </nav>
+              </div>
+
+              {/* Get In Touch */}
+              <div>
+                <h3 className="text-white font-semibold mb-3 text-sm">
+                  Get In Touch
+                </h3>
+                <address className="not-italic space-y-2 text-sm">
+                  <div className="flex items-start gap-3">
+                    <MapPin
+                      className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0"
+                      aria-hidden="true"
+                    />
+                    <p className="text-gray-300">
+                      DestinyPal, Nairobi
+                      <br />
+                      Westlands, ABC Place, 5th Floor
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Mail
+                      className="w-4 h-4 text-yellow-400 flex-shrink-0"
+                      aria-hidden="true"
+                    />
+                    <a
+                      href="mailto:support@destinypal.org"
+                      className="text-yellow-400 hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                    >
+                      support@destinypal.org
+                    </a>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Phone
+                      className="w-4 h-4 text-yellow-400 flex-shrink-0"
+                      aria-hidden="true"
+                    />
+                    <a
+                      href="tel:+254700123456"
+                      className="text-yellow-400 hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                    >
+                      +254 700 123 456
+                    </a>
+                  </div>
+                </address>
+              </div>
+            </div>
+
+            {/* Social Icons - centered */}
+            <div className="flex justify-center gap-4">
+              <a
+                href="#"
+                className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                aria-label="Follow us on Facebook"
+              >
+                <Facebook className="w-4 h-4" />
+              </a>
+              <a
+                href="#"
+                className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                aria-label="Follow us on X (Twitter)"
+              >
+                <Twitter className="w-4 h-4" />
+              </a>
+              <a
+                href="#"
+                className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                aria-label="Connect with us on LinkedIn"
+              >
+                <Linkedin className="w-4 h-4" />
+              </a>
+              <a
+                href="#"
+                className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                aria-label="Subscribe to our YouTube channel"
+              >
+                <Youtube className="w-4 h-4" />
+              </a>
+              <a
+                href="#"
+                className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                aria-label="Follow us on Instagram"
+              >
+                <Instagram className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+
+          {/* Desktop Layout - same as provided, with accessibility improvements */}
+          <div className="hidden md:grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-8">
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-lg flex items-center justify-center">
-                  <Heart className="w-4 h-4 text-slate-800 fill-slate-800" />
+                  <Heart
+                    className="w-4 h-4 text-slate-800 fill-slate-800"
+                    aria-hidden="true"
+                  />
                 </div>
-                <span className="text-base font-bold text-white">DestinyPal</span>
+                <span className="text-base font-bold text-white">
+                  DestinyPal
+                </span>
               </div>
               <p className="text-sm text-gray-400 leading-relaxed">
-                DestinyPal empowers underprivileged individuals and communities through education, youth development,
-                and community support programs.
+                DestinyPal empowers underprivileged individuals and communities
+                through education, youth development, and community support
+                programs.
               </p>
             </div>
 
             <div>
-              <h3 className="text-white font-semibold mb-3 text-sm md:text-base">Useful Links</h3>
-              <ul className="space-y-2">
-                <li>
-                  <a href="/sponsor" className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors">
-                    Sponsor a Student
-                  </a>
-                </li>
-                <li>
-                  <a href="/donate" className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors">
-                    Make a Donation
-                  </a>
-                </li>
-                <li>
-                  <a href="/career" className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors">
-                    Career
-                  </a>
-                </li>
-                <li>
-                  <a href="/news" className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors">
-                    News and Updates
-                  </a>
-                </li>
-                <li>
-                  <a href="/contact" className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors">
-                    Contact Us
-                  </a>
-                </li>
-              </ul>
+              <h3 className="text-white font-semibold mb-3 text-sm md:text-base">
+                Useful Links
+              </h3>
+              <nav aria-label="Footer navigation">
+                <ul className="space-y-2">
+                  <li>
+                    <a
+                      href="/sponsor"
+                      className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                      aria-label="Sponsor a Student"
+                    >
+                      Sponsor a Student
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="/donate"
+                      className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                      aria-label="Make a Donation"
+                    >
+                      Make a Donation
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="/career"
+                      className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                      aria-label="Career opportunities"
+                    >
+                      Career
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="/news"
+                      className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                      aria-label="News and Updates"
+                    >
+                      News and Updates
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="/contact"
+                      className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                      aria-label="Contact Us"
+                    >
+                      Contact Us
+                    </a>
+                  </li>
+                </ul>
+              </nav>
             </div>
 
             <div>
-              <h3 className="text-white font-semibold mb-3 text-sm md:text-base">Get In Touch</h3>
-              <div className="space-y-2 mb-4">
+              <h3 className="text-white font-semibold mb-3 text-sm md:text-base">
+                Get In Touch
+              </h3>
+              <address className="not-italic space-y-2 mb-4 text-sm">
                 <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-gray-300">
+                  <MapPin
+                    className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0"
+                    aria-hidden="true"
+                  />
+                  <p className="text-gray-300">
                     DestinyPal, Nairobi
                     <br />
                     Westlands, ABC Place, 5th Floor
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                  <Mail
+                    className="w-4 h-4 text-yellow-400 flex-shrink-0"
+                    aria-hidden="true"
+                  />
                   <a
                     href="mailto:support@destinypal.org"
-                    className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors"
+                    className="text-yellow-400 hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
                   >
                     support@destinypal.org
                   </a>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                  <Phone
+                    className="w-4 h-4 text-yellow-400 flex-shrink-0"
+                    aria-hidden="true"
+                  />
                   <a
                     href="tel:+254700123456"
-                    className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors"
+                    className="text-yellow-400 hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
                   >
                     +254 700 123 456
                   </a>
                 </div>
-              </div>
+              </address>
 
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <a
                   href="#"
-                  className="w-8 h-8 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300"
-                  aria-label="Facebook"
+                  className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  aria-label="Follow us on Facebook"
                 >
                   <Facebook className="w-4 h-4" />
                 </a>
                 <a
                   href="#"
-                  className="w-8 h-8 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300"
-                  aria-label="Twitter"
+                  className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  aria-label="Follow us on X (Twitter)"
                 >
                   <Twitter className="w-4 h-4" />
                 </a>
                 <a
                   href="#"
-                  className="w-8 h-8 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300"
-                  aria-label="LinkedIn"
+                  className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  aria-label="Connect with us on LinkedIn"
                 >
                   <Linkedin className="w-4 h-4" />
                 </a>
                 <a
                   href="#"
-                  className="w-8 h-8 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300"
-                  aria-label="YouTube"
+                  className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  aria-label="Subscribe to our YouTube channel"
                 >
                   <Youtube className="w-4 h-4" />
                 </a>
                 <a
                   href="#"
-                  className="w-8 h-8 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300"
-                  aria-label="Instagram"
+                  className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  aria-label="Follow us on Instagram"
                 >
                   <Instagram className="w-4 h-4" />
                 </a>
@@ -730,11 +1042,14 @@ export function Contact(): React.JSX.Element {
             </div>
           </div>
 
+          {/* Copyright - same for both */}
           <div className="border-t border-slate-700 pt-4 md:pt-6">
-            <p className="text-center text-xs md:text-sm text-gray-400">© 2025 – DestinyPal | All Rights Reserved</p>
+            <p className="text-center text-xs md:text-sm text-gray-400">
+              © 2025 – DestinyPal | All Rights Reserved
+            </p>
           </div>
         </div>
       </footer>
     </div>
-  )
+  );
 }

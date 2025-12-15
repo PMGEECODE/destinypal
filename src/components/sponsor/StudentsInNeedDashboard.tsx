@@ -26,6 +26,7 @@ import { StudentCard } from "./StudentCard";
 import { StudentDetailModal } from "./StudentDetailModal";
 import { SponsorshipModal } from "./SponsorshipModal";
 import { DonationModal } from "./DonationModal";
+import { SponsorshipPaymentModal } from "./SponsorshipPaymentModal"; // Import new component
 import type {
   Sponsor,
   StudentWithPaymentAccounts,
@@ -55,6 +56,16 @@ export function StudentsInNeedDashboard() {
   const [sponsorshipStudent, setSponsorshipStudent] =
     useState<StudentWithPaymentAccounts | null>(null);
   const [showDonationModal, setShowDonationModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false); // New state for payment modal
+  const [sponsorInfo, setSponsorInfo] = useState<{
+    full_name: string;
+    email: string;
+    phone: string | null;
+  } | null>(null); // New state for sponsor info
+  const [commitmentType, setCommitmentType] = useState<"full" | "partial">(
+    "full"
+  ); // New state for commitment type
+  const [commitmentAmount, setCommitmentAmount] = useState<number>(0); // New state for commitment amount
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
@@ -303,19 +314,49 @@ export function StudentsInNeedDashboard() {
     try {
       if (!sponsorshipStudent) return;
 
+      // Store sponsor info for payment modal
+      setSponsorInfo({
+        full_name: data.sponsor.full_name,
+        email: data.sponsor.email,
+        phone: data.sponsor.phone || null,
+      });
+      setCommitmentType(data.commitmentType);
+      setCommitmentAmount(data.amount);
+
+      // Close sponsor info modal and open payment modal
+      setSponsorshipStudent(null);
+      setShowPaymentModal(true);
+    } catch (error) {
+      console.error("Error preparing sponsorship:", error);
+      throw error;
+    }
+  };
+
+  const handlePaymentComplete = async (
+    transactionId: string,
+    paymentAmount: number
+  ) => {
+    try {
+      if (!sponsorInfo || !sponsorshipStudent) return;
+
+      // Create sponsorship after successful payment
       await api.createSponsorship({
         student_id: sponsorshipStudent.id,
-        amount: data.amount,
+        amount: commitmentAmount,
         currency: "USD",
-        notes: `Payment method: ${data.paymentMethod}, Type: ${data.commitmentType}`,
+        notes: `Transaction ID: ${transactionId}, Payment Amount: ${paymentAmount}`,
       });
 
       alert("Sponsorship created successfully!");
-      setSponsorshipStudent(null);
+      setShowPaymentModal(false);
+      setSponsorInfo(null);
       fetchData();
     } catch (error) {
       console.error("Error creating sponsorship:", error);
-      throw error;
+      alert(
+        "Payment completed but sponsorship creation failed. Please contact support with transaction ID: " +
+          transactionId
+      );
     }
   };
 
@@ -1009,6 +1050,20 @@ export function StudentsInNeedDashboard() {
         <DonationModal
           onClose={() => setShowDonationModal(false)}
           onSubmit={handleDonationSubmit}
+        />
+      )}
+
+      {showPaymentModal && sponsorInfo && sponsorshipStudent && (
+        <SponsorshipPaymentModal
+          student={sponsorshipStudent}
+          sponsorInfo={sponsorInfo}
+          commitmentType={commitmentType}
+          commitmentAmount={commitmentAmount}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSponsorInfo(null);
+          }}
+          onComplete={handlePaymentComplete}
         />
       )}
     </div>

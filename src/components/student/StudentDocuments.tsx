@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef } from "react";
 import {
   FileText,
   Camera,
@@ -21,33 +21,38 @@ import {
   RefreshCw,
   Lock,
   Shield,
-} from "lucide-react"
-import { VerifiedBadge } from "../VerifiedBadge"
-import { studentStore } from "../../lib/api"
+} from "lucide-react";
+import { VerifiedBadge } from "../VerifiedBadge";
+import { studentStore } from "../../lib/api";
 
 interface StudentDocumentsProps {
-  studentId: string
-  onDocumentsUpdate?: () => void // Added callback for document updates
+  studentId: string;
+  onDocumentsUpdate?: () => void; // Added callback for document updates
 }
 
-type DocumentType = "passport_photo" | "academic_results" | "authority_letter" | "approval_letter" | "identification"
-type DocumentStatus = "pending" | "approved" | "rejected"
+type DocumentType =
+  | "passport_photo"
+  | "academic_results"
+  | "authority_letter"
+  | "approval_letter"
+  | "identification";
+type DocumentStatus = "pending" | "approved" | "rejected";
 
 interface StudentDocument {
-  id: string
-  student_id: string
-  document_type: DocumentType
-  file_url: string
-  file_name: string
-  file_size: number
-  mime_type: string
-  status: DocumentStatus
-  rejection_reason?: string
-  created_at: string
-  updated_at?: string
-  uploaded_at?: string
-  virus_scan_status?: "clean" | "infected" | "failed"
-  is_encrypted?: boolean
+  id: string;
+  student_id: string;
+  document_type: DocumentType;
+  file_url: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  status: DocumentStatus;
+  rejection_reason?: string;
+  created_at: string;
+  updated_at?: string;
+  uploaded_at?: string;
+  virus_scan_status?: "clean" | "infected" | "failed";
+  is_encrypted?: boolean;
 }
 
 const documentCategories = [
@@ -96,88 +101,123 @@ const documentCategories = [
     maxSize: 10 * 1024 * 1024,
     allowMultiple: true,
   },
-]
+];
 
 const statusConfig = {
-  pending: { icon: Clock, label: "Pending", color: "text-amber-600 bg-amber-50" },
-  approved: { icon: CheckCircle, label: "Approved", color: "text-green-600 bg-green-50" },
-  rejected: { icon: XCircle, label: "Rejected", color: "text-red-600 bg-red-50" },
-}
+  pending: {
+    icon: Clock,
+    label: "Pending",
+    color: "text-amber-600 bg-amber-50",
+  },
+  approved: {
+    icon: CheckCircle,
+    label: "Approved",
+    color: "text-green-600 bg-green-50",
+  },
+  rejected: {
+    icon: XCircle,
+    label: "Rejected",
+    color: "text-red-600 bg-red-50",
+  },
+};
 
-export function StudentDocuments({ studentId, onDocumentsUpdate }: StudentDocumentsProps) {
-  const [documents, setDocuments] = useState<StudentDocument[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false)
+export function StudentDocuments({
+  studentId,
+  onDocumentsUpdate,
+}: StudentDocumentsProps) {
+  const [documents, setDocuments] = useState<StudentDocument[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
 
   const [uploadQueue, setUploadQueue] = useState<
     Record<
       DocumentType,
       {
-        file: File
-        previewUrl: string
-        progress: number
-        uploading: boolean
-        error?: string
-        controller: AbortController
+        file: File;
+        previewUrl: string;
+        progress: number;
+        uploading: boolean;
+        error?: string;
+        controller: AbortController;
       }[]
     >
-  >({} as any)
+  >({} as any);
 
-  const [deletingDoc, setDeletingDoc] = useState<string | null>(null)
-  const fileInputRefs = useRef<Record<DocumentType, HTMLInputElement | null>>({} as any)
+  const [deletingDoc, setDeletingDoc] = useState<string | null>(null);
+  const fileInputRefs = useRef<Record<DocumentType, HTMLInputElement | null>>(
+    {} as any
+  );
 
   useEffect(() => {
-    fetchDocuments()
-  }, [studentId])
+    fetchDocuments();
+  }, [studentId]);
 
   const fetchDocuments = async () => {
     try {
-      setLoading(true)
-      setError(null)
-      const docs = await studentStore.getStudentDocuments(studentId)
-      setDocuments(docs)
+      setLoading(true);
+      setError(null);
+      const docs = await studentStore.getStudentDocuments(studentId);
+      setDocuments(docs);
     } catch (err: any) {
-      setError(err.message || "Failed to load documents")
+      setError(err.message || "Failed to load documents");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const getDocumentsByType = (type: DocumentType) => documents.filter((d) => d.document_type === type)
+  const getDocumentsByType = (type: DocumentType) =>
+    documents.filter((d) => d.document_type === type);
 
   const getApprovedCount = () => {
-    const required = documentCategories.filter((c) => !c.allowMultiple)
+    const required = documentCategories.filter((c) => !c.allowMultiple);
     const approvedSingle = required.filter((c) =>
-      getDocumentsByType(c.type).some((d) => d.status === "approved"),
-    ).length
+      getDocumentsByType(c.type).some((d) => d.status === "approved")
+    ).length;
     const multiApproved = documentCategories
       .filter((c) => c.allowMultiple)
-      .some((c) => getDocumentsByType(c.type).some((d) => d.status === "approved"))
+      .some((c) =>
+        getDocumentsByType(c.type).some((d) => d.status === "approved")
+      )
       ? 1
-      : 0
-    return approvedSingle + (multiApproved ? 1 : 0)
-  }
+      : 0;
+    return approvedSingle + (multiApproved ? 1 : 0);
+  };
 
-  const totalRequired = documentCategories.length
-  const isFullyVerified = getApprovedCount() >= totalRequired
+  const totalRequired = documentCategories.length;
+  const isFullyVerified = getApprovedCount() >= totalRequired;
 
-  const handleFileSelect = async (type: DocumentType, files: FileList | null) => {
-    if (!files || !disclaimerAccepted) return
-    const config = documentCategories.find((c) => c.type === type)!
+  const handleFileSelect = async (
+    type: DocumentType,
+    files: FileList | null
+  ) => {
+    if (!files || !disclaimerAccepted) return;
+    const config = documentCategories.find((c) => c.type === type)!;
 
     for (const file of Array.from(files)) {
       if (file.size > config.maxSize) {
-        alert(`File "${file.name}" is too large. Maximum size is ${config.maxSize / 1024 / 1024}MB`)
-        continue
+        alert(
+          `File "${file.name}" is too large. Maximum size is ${
+            config.maxSize / 1024 / 1024
+          }MB`
+        );
+        continue;
       }
-      if (!config.accepted.split(",").some((t) => file.type === t || file.type.startsWith(t.replace("/*", "/")))) {
-        alert(`Invalid file type for "${file.name}". Accepted: ${config.accepted}`)
-        continue
+      if (
+        !config.accepted
+          .split(",")
+          .some(
+            (t) => file.type === t || file.type.startsWith(t.replace("/*", "/"))
+          )
+      ) {
+        alert(
+          `Invalid file type for "${file.name}". Accepted: ${config.accepted}`
+        );
+        continue;
       }
 
-      const previewUrl = URL.createObjectURL(file)
-      const controller = new AbortController()
+      const previewUrl = URL.createObjectURL(file);
+      const controller = new AbortController();
 
       // Add to upload queue
       setUploadQueue((prev) => ({
@@ -192,122 +232,147 @@ export function StudentDocuments({ studentId, onDocumentsUpdate }: StudentDocume
             controller,
           },
         ],
-      }))
+      }));
 
       // Upload file
-      await uploadFile(type, file, previewUrl, controller)
+      await uploadFile(type, file, previewUrl, controller);
     }
-  }
+  };
 
-  const uploadFile = async (type: DocumentType, file: File, previewUrl: string, controller: AbortController) => {
+  const uploadFile = async (
+    type: DocumentType,
+    file: File,
+    previewUrl: string,
+    controller: AbortController
+  ) => {
     try {
       // Create form data for file upload
-      const formData = new FormData()
-      formData.append("file", file)
-      formData.append("document_type", type)
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("document_type", type);
 
       // Simulate progress updates
-      let progress = 0
+      let progress = 0;
       const progressInterval = setInterval(() => {
-        progress += 10
+        progress += 10;
         if (progress <= 90) {
           setUploadQueue((prev) => ({
             ...prev,
-            [type]: prev[type]?.map((item) => (item.previewUrl === previewUrl ? { ...item, progress } : item)) || [],
-          }))
+            [type]:
+              prev[type]?.map((item) =>
+                item.previewUrl === previewUrl ? { ...item, progress } : item
+              ) || [],
+          }));
         }
-      }, 200)
+      }, 200);
 
       // Upload to backend - the backend will handle encryption and storage
-      const response = await studentStore.uploadStudentDocumentFile(studentId, formData)
+      const response = await studentStore.uploadStudentDocumentFile(
+        studentId,
+        formData
+      );
 
-      clearInterval(progressInterval)
+      clearInterval(progressInterval);
 
       // Set progress to 100%
       setUploadQueue((prev) => ({
         ...prev,
-        [type]: prev[type]?.map((item) => (item.previewUrl === previewUrl ? { ...item, progress: 100 } : item)) || [],
-      }))
+        [type]:
+          prev[type]?.map((item) =>
+            item.previewUrl === previewUrl ? { ...item, progress: 100 } : item
+          ) || [],
+      }));
 
       // Refresh documents list
-      await fetchDocuments()
+      await fetchDocuments();
 
       // Remove from queue after short delay
       setTimeout(() => {
-        removeFromQueue(type, previewUrl)
-      }, 1000)
+        removeFromQueue(type, previewUrl);
+      }, 1000);
 
       // Notify parent of update
       if (onDocumentsUpdate) {
-        onDocumentsUpdate()
+        onDocumentsUpdate();
       }
     } catch (err: any) {
       const errorMsg =
         err.name === "AbortError"
           ? "Upload cancelled"
           : err.message?.includes("virus")
-            ? "VIRUS DETECTED - File rejected"
-            : err.message || "Upload failed"
+          ? "VIRUS DETECTED - File rejected"
+          : err.message || "Upload failed";
 
       setUploadQueue((prev) => ({
         ...prev,
         [type]:
           prev[type]?.map((item) =>
-            item.previewUrl === previewUrl ? { ...item, uploading: false, error: errorMsg } : item,
+            item.previewUrl === previewUrl
+              ? { ...item, uploading: false, error: errorMsg }
+              : item
           ) || [],
-      }))
+      }));
     }
-  }
+  };
 
   const removeFromQueue = (type: DocumentType, previewUrl: string) => {
-    URL.revokeObjectURL(previewUrl)
+    URL.revokeObjectURL(previewUrl);
     setUploadQueue((prev) => ({
       ...prev,
-      [type]: prev[type]?.filter((item) => item.previewUrl !== previewUrl) || [],
-    }))
-  }
+      [type]:
+        prev[type]?.filter((item) => item.previewUrl !== previewUrl) || [],
+    }));
+  };
 
   const deleteDocument = async (docId: string) => {
-    if (!confirm("Are you sure you want to delete this document? This action cannot be undone.")) return
+    if (
+      !confirm(
+        "Are you sure you want to delete this document? This action cannot be undone."
+      )
+    )
+      return;
 
     try {
-      setDeletingDoc(docId)
-      await studentStore.deleteStudentDocument(studentId, docId)
-      await fetchDocuments()
+      setDeletingDoc(docId);
+      await studentStore.deleteStudentDocument(studentId, docId);
+      await fetchDocuments();
 
       // Notify parent of update
       if (onDocumentsUpdate) {
-        onDocumentsUpdate()
+        onDocumentsUpdate();
       }
     } catch (err: any) {
-      alert(err.message || "Failed to delete document")
+      alert(err.message || "Failed to delete document");
     } finally {
-      setDeletingDoc(null)
+      setDeletingDoc(null);
     }
-  }
+  };
 
   const downloadDocument = async (doc: StudentDocument) => {
     try {
       // Request decrypted file from backend
-      const response = await studentStore.downloadStudentDocument(studentId, doc.id)
+      const response = await studentStore.downloadStudentDocument(
+        studentId,
+        doc.id
+      );
 
       // Create download link
-      const link = document.createElement("a")
-      link.href = response.download_url || doc.file_url
-      link.download = doc.file_name
-      link.click()
+      const link = document.createElement("a");
+      link.href = response.download_url || doc.file_url;
+      link.download = doc.file_name;
+      link.click();
     } catch (err: any) {
       // Fallback to direct URL
-      window.open(doc.file_url, "_blank")
+      window.open(doc.file_url, "_blank");
     }
-  }
+  };
 
-  if (loading) return <LoadingScreen />
-  if (error) return <ErrorScreen error={error} onRetry={fetchDocuments} />
+  if (loading) return <LoadingScreen />;
+  if (error) return <ErrorScreen error={error} onRetry={fetchDocuments} />;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-50 lg:ml-64">
-      <div className="max-w-5xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4 lg:py-8 space-y-3 sm:space-y-4">
+    <div className="min-h-screen bg-gray-100 lg:ml-64">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-8 space-y-6">
         {/* Header + Progress */}
         <div className="bg-white rounded-xl sm:rounded-2xl shadow-md border border-gray-200 p-3 sm:p-4 lg:p-6">
           <div className="flex items-center justify-between gap-2 mb-3">
@@ -316,7 +381,9 @@ export function StudentDocuments({ studentId, onDocumentsUpdate }: StudentDocume
                 Document Verification
                 {isFullyVerified && <VerifiedBadge size="sm" />}
               </h1>
-              <p className="text-sm text-gray-600 mt-1">Upload your documents for verification</p>
+              <p className="text-sm text-gray-600 mt-1">
+                Upload your documents for verification
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -334,7 +401,9 @@ export function StudentDocuments({ studentId, onDocumentsUpdate }: StudentDocume
           <div className="w-full bg-gray-200 rounded-full h-2 sm:h-2.5">
             <div
               className="bg-green-600 h-2 sm:h-2.5 rounded-full transition-all duration-700"
-              style={{ width: `${(getApprovedCount() / totalRequired) * 100}%` }}
+              style={{
+                width: `${(getApprovedCount() / totalRequired) * 100}%`,
+              }}
             />
           </div>
         </div>
@@ -343,10 +412,13 @@ export function StudentDocuments({ studentId, onDocumentsUpdate }: StudentDocume
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
           <Shield className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
           <div>
-            <h3 className="text-sm font-semibold text-blue-800">Your Documents Are Secure</h3>
+            <h3 className="text-sm font-semibold text-blue-800">
+              Your Documents Are Secure
+            </h3>
             <p className="text-xs text-blue-700 mt-1">
-              All uploaded documents are encrypted and stored securely. Only authorized personnel can access your files
-              during the verification process.
+              All uploaded documents are encrypted and stored securely. Only
+              authorized personnel can access your files during the verification
+              process.
             </p>
           </div>
         </div>
@@ -356,9 +428,12 @@ export function StudentDocuments({ studentId, onDocumentsUpdate }: StudentDocume
           <div className="flex gap-2 sm:gap-3">
             <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm sm:text-base font-bold text-red-800 mb-2">Legal Declaration</h3>
+              <h3 className="text-sm sm:text-base font-bold text-red-800 mb-2">
+                Legal Declaration
+              </h3>
               <p className="text-xs sm:text-sm text-red-700 mb-2">
-                All documents must be genuine. Forgery will result in permanent ban and potential legal action.
+                All documents must be genuine. Forgery will result in permanent
+                ban and potential legal action.
               </p>
               <label className="flex items-center gap-2 text-xs sm:text-sm cursor-pointer">
                 <input
@@ -367,7 +442,9 @@ export function StudentDocuments({ studentId, onDocumentsUpdate }: StudentDocume
                   onChange={(e) => setDisclaimerAccepted(e.target.checked)}
                   className="w-4 h-4 rounded border-red-300 text-red-600 focus:ring-red-500"
                 />
-                <span className="font-semibold text-red-800">I confirm all documents are 100% authentic</span>
+                <span className="font-semibold text-red-800">
+                  I confirm all documents are 100% authentic
+                </span>
               </label>
             </div>
           </div>
@@ -376,10 +453,10 @@ export function StudentDocuments({ studentId, onDocumentsUpdate }: StudentDocume
         {/* Document Sections */}
         <div className="space-y-2 sm:space-y-3">
           {documentCategories.map((cat) => {
-            const Icon = cat.icon
-            const docs = getDocumentsByType(cat.type)
-            const hasApproved = docs.some((d) => d.status === "approved")
-            const queue = uploadQueue[cat.type] || []
+            const Icon = cat.icon;
+            const docs = getDocumentsByType(cat.type);
+            const hasApproved = docs.some((d) => d.status === "approved");
+            const queue = uploadQueue[cat.type] || [];
 
             return (
               <div
@@ -389,15 +466,27 @@ export function StudentDocuments({ studentId, onDocumentsUpdate }: StudentDocume
                 <div className="p-3 sm:p-4">
                   {/* Category Header */}
                   <div className="flex gap-2 sm:gap-3 mb-3">
-                    <div className={`p-2 rounded-lg shrink-0 ${hasApproved ? "bg-green-100" : "bg-gray-100"}`}>
-                      <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${hasApproved ? "text-green-600" : "text-gray-600"}`} />
+                    <div
+                      className={`p-2 rounded-lg shrink-0 ${
+                        hasApproved ? "bg-green-100" : "bg-gray-100"
+                      }`}
+                    >
+                      <Icon
+                        className={`w-4 h-4 sm:w-5 sm:h-5 ${
+                          hasApproved ? "text-green-600" : "text-gray-600"
+                        }`}
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-sm sm:text-base font-bold text-gray-800">{cat.label}</h3>
+                        <h3 className="text-sm sm:text-base font-bold text-gray-800">
+                          {cat.label}
+                        </h3>
                         {hasApproved && <VerifiedBadge size="sm" />}
                       </div>
-                      <p className="text-xs text-gray-600 mt-0.5">{cat.description}</p>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        {cat.description}
+                      </p>
                     </div>
                   </div>
 
@@ -405,9 +494,16 @@ export function StudentDocuments({ studentId, onDocumentsUpdate }: StudentDocume
                   {docs.length > 0 && (
                     <div className="space-y-2 mb-3">
                       {docs.map((doc) => {
-                        const { icon: StatusIcon, label, color } = statusConfig[doc.status]
+                        const {
+                          icon: StatusIcon,
+                          label,
+                          color,
+                        } = statusConfig[doc.status];
                         return (
-                          <div key={doc.id} className="bg-gray-50 rounded-lg p-2.5 sm:p-3 border border-gray-200">
+                          <div
+                            key={doc.id}
+                            className="bg-gray-50 rounded-lg p-2.5 sm:p-3 border border-gray-200"
+                          >
                             <div className="flex items-start justify-between gap-2 mb-2">
                               <div className="flex items-center gap-2 flex-1 min-w-0">
                                 <FileText className="w-4 h-4 text-gray-600 shrink-0" />
@@ -416,10 +512,20 @@ export function StudentDocuments({ studentId, onDocumentsUpdate }: StudentDocume
                                     <p className="text-xs sm:text-sm font-semibold text-gray-800 truncate">
                                       {doc.file_name}
                                     </p>
-                                    {doc.is_encrypted && <Lock className="w-3 h-3 text-green-600" title="Encrypted" />}
+                                    {doc.is_encrypted && (
+                                      <Lock
+                                        className="w-3 h-3 text-green-600"
+                                        title="Encrypted"
+                                      />
+                                    )}
                                   </div>
                                   <p className="text-xs text-gray-500">
-                                    {((doc.file_size || 0) / 1024 / 1024).toFixed(2)} MB
+                                    {(
+                                      (doc.file_size || 0) /
+                                      1024 /
+                                      1024
+                                    ).toFixed(2)}{" "}
+                                    MB
                                   </p>
                                 </div>
                               </div>
@@ -436,12 +542,15 @@ export function StudentDocuments({ studentId, onDocumentsUpdate }: StudentDocume
                             )}
                             {doc.virus_scan_status === "infected" && (
                               <div className="bg-red-50 p-2 rounded-lg mb-2 text-red-800 text-xs font-bold flex items-center gap-2">
-                                <AlertCircle className="w-4 h-4 shrink-0" /> VIRUS DETECTED - File quarantined
+                                <AlertCircle className="w-4 h-4 shrink-0" />{" "}
+                                VIRUS DETECTED - File quarantined
                               </div>
                             )}
                             <div className="flex gap-1.5 flex-wrap">
                               <button
-                                onClick={() => window.open(doc.file_url, "_blank")}
+                                onClick={() =>
+                                  window.open(doc.file_url, "_blank")
+                                }
                                 className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 active:scale-95 transition-all flex items-center gap-1"
                               >
                                 <Eye className="w-3 h-3" /> View
@@ -468,7 +577,7 @@ export function StudentDocuments({ studentId, onDocumentsUpdate }: StudentDocume
                               )}
                             </div>
                           </div>
-                        )
+                        );
                       })}
                     </div>
                   )}
@@ -491,12 +600,18 @@ export function StudentDocuments({ studentId, onDocumentsUpdate }: StudentDocume
                             <FileText className="w-8 h-8 text-blue-600 shrink-0" />
                           )}
                           <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm font-semibold text-gray-800 truncate">{item.file.name}</p>
-                            <p className="text-xs text-gray-500">{(item.file.size / 1024 / 1024).toFixed(2)} MB</p>
+                            <p className="text-xs sm:text-sm font-semibold text-gray-800 truncate">
+                              {item.file.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {(item.file.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
                           </div>
                         </div>
                         {item.error ? (
-                          <span className="text-xs sm:text-sm text-red-600 font-bold shrink-0">{item.error}</span>
+                          <span className="text-xs sm:text-sm text-red-600 font-bold shrink-0">
+                            {item.error}
+                          </span>
                         ) : (
                           <span className="text-xs sm:text-sm text-green-700 font-semibold shrink-0">
                             {item.progress}%
@@ -505,15 +620,17 @@ export function StudentDocuments({ studentId, onDocumentsUpdate }: StudentDocume
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-1.5 mb-1.5">
                         <div
-                          className={`h-1.5 rounded-full transition-all ${item.error ? "bg-red-500" : "bg-green-600"}`}
+                          className={`h-1.5 rounded-full transition-all ${
+                            item.error ? "bg-red-500" : "bg-green-600"
+                          }`}
                           style={{ width: `${item.progress}%` }}
                         />
                       </div>
                       {!item.error && item.uploading && (
                         <button
                           onClick={() => {
-                            item.controller.abort()
-                            removeFromQueue(cat.type, item.previewUrl)
+                            item.controller.abort();
+                            removeFromQueue(cat.type, item.previewUrl);
                           }}
                           className="text-xs text-red-600 font-semibold hover:text-red-700"
                         >
@@ -522,7 +639,9 @@ export function StudentDocuments({ studentId, onDocumentsUpdate }: StudentDocume
                       )}
                       {item.error && (
                         <button
-                          onClick={() => removeFromQueue(cat.type, item.previewUrl)}
+                          onClick={() =>
+                            removeFromQueue(cat.type, item.previewUrl)
+                          }
                           className="text-xs text-gray-600 font-semibold hover:text-gray-800"
                         >
                           Dismiss
@@ -532,14 +651,17 @@ export function StudentDocuments({ studentId, onDocumentsUpdate }: StudentDocume
                   ))}
 
                   {/* Upload Button */}
-                  {((!cat.allowMultiple && docs.length === 0) || cat.allowMultiple) && (
+                  {((!cat.allowMultiple && docs.length === 0) ||
+                    cat.allowMultiple) && (
                     <div>
                       <input
                         type="file"
                         accept={cat.accepted}
                         multiple={cat.allowMultiple}
                         ref={(el) => (fileInputRefs.current[cat.type] = el)}
-                        onChange={(e) => handleFileSelect(cat.type, e.target.files)}
+                        onChange={(e) =>
+                          handleFileSelect(cat.type, e.target.files)
+                        }
                         className="hidden"
                       />
                       <button
@@ -551,18 +673,20 @@ export function StudentDocuments({ studentId, onDocumentsUpdate }: StudentDocume
                         <p className="text-xs sm:text-sm font-bold text-gray-700">
                           {cat.allowMultiple ? "Add Files" : "Add File"}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">Click or drag and drop</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Click or drag and drop
+                        </p>
                       </button>
                     </div>
                   )}
                 </div>
               </div>
-            )
+            );
           })}
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 const LoadingScreen = () => (
@@ -572,13 +696,21 @@ const LoadingScreen = () => (
       <p className="text-gray-600 text-sm font-medium">Loading documents...</p>
     </div>
   </div>
-)
+);
 
-const ErrorScreen = ({ error, onRetry }: { error: string; onRetry: () => void }) => (
+const ErrorScreen = ({
+  error,
+  onRetry,
+}: {
+  error: string;
+  onRetry: () => void;
+}) => (
   <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-50 flex items-center justify-center lg:ml-64 p-4">
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 max-w-sm w-full text-center">
       <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-3" />
-      <h2 className="text-lg font-bold text-gray-900 mb-2">Error Loading Documents</h2>
+      <h2 className="text-lg font-bold text-gray-900 mb-2">
+        Error Loading Documents
+      </h2>
       <p className="text-sm text-gray-600 mb-4">{error}</p>
       <button
         onClick={onRetry}
@@ -588,6 +720,6 @@ const ErrorScreen = ({ error, onRetry }: { error: string; onRetry: () => void })
       </button>
     </div>
   </div>
-)
+);
 
-export default StudentDocuments
+export default StudentDocuments;

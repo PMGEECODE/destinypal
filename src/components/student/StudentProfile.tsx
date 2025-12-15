@@ -1,3 +1,5 @@
+"use client";
+
 import type React from "react";
 import { useEffect, useState } from "react";
 import {
@@ -13,12 +15,12 @@ import {
   Loader2,
   RefreshCw,
   AlertCircle,
-  Edit3,
-  Save,
-  X,
   Camera,
   CreditCard,
   Users,
+  Edit3,
+  Save,
+  X,
 } from "lucide-react";
 import { studentStore } from "../../lib/api";
 import type {
@@ -65,6 +67,13 @@ export function StudentProfile({
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
+  const [isEditingFees, setIsEditingFees] = useState(false);
+  const [editFeeData, setEditFeeData] = useState({
+    total_fees: 0,
+    amount_paid: 0,
+  });
+  const [savingFees, setSavingFees] = useState(false);
+
   const [hasFinancialSupport, setHasFinancialSupport] = useState<
     boolean | null
   >(null);
@@ -95,6 +104,14 @@ export function StudentProfile({
         const balances = await studentStore.getStudentFeeBalances(studentId);
         console.log("[v0] Fee balances:", balances);
         setFeeBalances(balances || []);
+
+        if (balances && balances.length > 0) {
+          const firstBalance = balances[0];
+          setEditFeeData({
+            total_fees: firstBalance.total_fees || 0,
+            amount_paid: firstBalance.amount_paid || 0,
+          });
+        }
       } catch {
         setFeeBalances([]);
       }
@@ -202,6 +219,69 @@ export function StudentProfile({
     return age;
   };
 
+  const handleSaveFees = async () => {
+    if (feeBalances.length === 0) {
+      alert("No fee balance record found. Please contact your institution.");
+      return;
+    }
+
+    const feeBalance = feeBalances[0];
+
+    try {
+      setSavingFees(true);
+      console.log("[v0] Updating fee balance:", {
+        studentId,
+        balanceId: feeBalance.id,
+        data: editFeeData,
+      });
+
+      // Calculate balance automatically
+      const balanceDue = editFeeData.total_fees - editFeeData.amount_paid;
+
+      await studentStore.updateStudentFeeBalance(studentId, feeBalance.id, {
+        total_fees: editFeeData.total_fees,
+        amount_paid: editFeeData.amount_paid,
+        balance_due: balanceDue,
+      });
+
+      // Refresh fee balances
+      const updatedBalances = await studentStore.getStudentFeeBalances(
+        studentId
+      );
+      setFeeBalances(updatedBalances || []);
+
+      setIsEditingFees(false);
+      alert("Fee balance updated successfully!");
+    } catch (err) {
+      console.error("[v0] Error updating fee balance:", err);
+      alert("Failed to update fee balance. Please try again.");
+    } finally {
+      setSavingFees(false);
+    }
+  };
+
+  const handleStartEditingFees = () => {
+    if (feeBalances.length > 0) {
+      const firstBalance = feeBalances[0];
+      setEditFeeData({
+        total_fees: firstBalance.total_fees || 0,
+        amount_paid: firstBalance.amount_paid || 0,
+      });
+      setIsEditingFees(true);
+    }
+  };
+
+  const handleCancelEditingFees = () => {
+    setIsEditingFees(false);
+    if (feeBalances.length > 0) {
+      const firstBalance = feeBalances[0];
+      setEditFeeData({
+        total_fees: firstBalance.total_fees || 0,
+        amount_paid: firstBalance.amount_paid || 0,
+      });
+    }
+  };
+
   const totalFees = feeBalances.reduce(
     (sum, fb) => sum + (fb.total_fees || 0),
     0
@@ -215,6 +295,12 @@ export function StudentProfile({
     0
   );
   const paymentProgress = totalFees > 0 ? (totalPaid / totalFees) * 100 : 0;
+
+  const editBalanceDue = editFeeData.total_fees - editFeeData.amount_paid;
+  const editPaymentProgress =
+    editFeeData.total_fees > 0
+      ? (editFeeData.amount_paid / editFeeData.total_fees) * 100
+      : 0;
 
   const getPhotoUrl = (student: StudentWithDetails | null): string | null => {
     if (!student) return null;
@@ -250,7 +336,7 @@ export function StudentProfile({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 p-4 sm:p-6 lg:p-8">
+      <div className="min-h-screen bg-gray-100 lg:ml-64 p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-6 sm:mb-8">
             <Skeleton className="h-8 sm:h-12 w-48 sm:w-64 mb-2" />
@@ -290,8 +376,8 @@ export function StudentProfile({
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-12 text-center max-w-md w-full">
+      <div className="min-h-screen bg-gray-100 lg:ml-64 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-md p-6 sm:p-12 text-center max-w-md w-full">
           <AlertCircle className="w-16 h-16 sm:w-20 sm:h-20 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
             Error Loading Profile
@@ -311,8 +397,8 @@ export function StudentProfile({
 
   if (!student) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-12 text-center max-w-md w-full">
+      <div className="min-h-screen bg-gray-100 lg:ml-64 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-md p-6 sm:p-12 text-center max-w-md w-full">
           <User className="w-16 h-16 sm:w-20 sm:h-20 text-gray-300 mx-auto mb-4" />
           <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
             Profile Not Found
@@ -326,78 +412,58 @@ export function StudentProfile({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 truncate">
-                My Profile
-              </h1>
-              <p className="text-xs sm:text-sm text-gray-600 mt-0.5">
-                View and update your student information
-              </p>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3">
-              {isEditing && (
-                <button
-                  onClick={() => {
-                    setIsEditing(false);
-                    setEditData(student);
-                    setHasFinancialSupport(!!student.financial_support_source);
-                    setSupportSource(student.financial_support_source || "");
-                    setSupportAmount(
-                      student.financial_support_amount
-                        ? String(student.financial_support_amount)
-                        : ""
-                    );
-                  }}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg font-medium transition-all border-2 border-gray-300 hover:border-gray-400 text-gray-700 hover:bg-gray-50"
-                >
-                  <X className="w-4 h-4" />
-                  <span className="text-sm">Cancel</span>
-                </button>
-              )}
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 lg:ml-72 p-6 sm:p-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-8 py-6 mb-8 flex items-center justify-between shadow-sm">
+          <div>
+            <h1 className="text-4xl sm:text-5xl font-bold text-gray-900">
+              My Profile
+            </h1>
+            <p className="text-base text-gray-600 mt-2">
+              View and update your profile information
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {isEditing && (
               <button
-                onClick={() =>
-                  isEditing ? handleSaveProfile() : setIsEditing(true)
-                }
-                disabled={saving}
-                className={`inline-flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 rounded-lg font-medium transition-all shadow-md hover:shadow-lg ${
-                  isEditing
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                    : "bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-200"
-                }`}
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditData(student);
+                  setHasFinancialSupport(!!student.financial_support_source);
+                  setSupportSource(student.financial_support_source || "");
+                  setSupportAmount(
+                    student.financial_support_amount
+                      ? String(student.financial_support_amount)
+                      : ""
+                  );
+                }}
+                className="px-5 py-2.5 rounded-xl font-medium transition-all border-2 border-gray-300 text-gray-700 hover:bg-gray-50"
               >
-                {saving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">Saving...</span>
-                  </>
-                ) : isEditing ? (
-                  <>
-                    <Save className="w-4 h-4" />
-                    <span className="text-sm">Save</span>
-                  </>
-                ) : (
-                  <>
-                    <Edit3 className="w-4 h-4" />
-                    <span className="text-sm">Edit</span>
-                  </>
-                )}
+                Cancel
               </button>
-            </div>
+            )}
+            <button
+              onClick={() =>
+                isEditing ? handleSaveProfile() : setIsEditing(true)
+              }
+              disabled={saving}
+              className={`px-6 py-2.5 rounded-xl font-medium transition-all ${
+                isEditing
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
+                  : "bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-300"
+              }`}
+            >
+              {saving ? "Saving..." : isEditing ? "Save" : "Edit"}
+            </button>
           </div>
         </div>
-      </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <aside className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 lg:sticky lg:top-24">
+            <div className="bg-white rounded-2xl p-8 lg:sticky lg:top-24 shadow-md">
               <div className="flex flex-col items-center">
-                <div className="relative mb-4">
-                  <div className="w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 rounded-full overflow-hidden shadow-xl ring-4 ring-emerald-100 relative">
+                <div className="relative mb-6">
+                  <div className="w-56 h-56 sm:w-60 sm:h-60 lg:w-64 lg:h-64 rounded-full overflow-hidden bg-gray-100 shadow-xl relative ring-4 ring-white">
                     {photoUrl ? (
                       <img
                         src={photoUrl || "/placeholder.svg"}
@@ -412,7 +478,7 @@ export function StudentProfile({
                       />
                     ) : null}
                     <div
-                      className={`w-full h-full flex items-center justify-center text-white text-3xl sm:text-4xl lg:text-5xl font-bold ${
+                      className={`w-full h-full flex items-center justify-center text-white text-5xl sm:text-6xl font-bold ${
                         photoUrl ? "hidden" : ""
                       }`}
                       style={{ backgroundColor: avatarColor }}
@@ -422,11 +488,11 @@ export function StudentProfile({
                   </div>
 
                   {isEditing && (
-                    <label className="absolute bottom-0 right-0 p-2 sm:p-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full cursor-pointer shadow-lg transition-all hover:scale-110">
+                    <label className="absolute bottom-2 right-2 p-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full cursor-pointer shadow-xl transition-all hover:scale-110">
                       {uploadingPhoto ? (
-                        <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                        <Loader2 className="w-6 h-6 animate-spin" />
                       ) : (
-                        <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <Camera className="w-6 h-6" />
                       )}
                       <input
                         type="file"
@@ -446,11 +512,11 @@ export function StudentProfile({
                     onChange={(e) =>
                       setEditData({ ...editData, full_name: e.target.value })
                     }
-                    className="text-xl sm:text-2xl font-bold text-gray-800 mb-1 text-center border-b-2 border-emerald-500 focus:outline-none w-full px-2 py-1"
+                    className="text-2xl font-bold text-gray-800 mb-2 text-center border-b-2 border-emerald-500 focus:outline-none w-full px-2 py-1 bg-transparent"
                     placeholder="Full Name"
                   />
                 ) : (
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-1 text-center">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 text-center">
                     {fullName}
                   </h2>
                 )}
@@ -462,20 +528,20 @@ export function StudentProfile({
                     onChange={(e) =>
                       setEditData({ ...editData, grade_level: e.target.value })
                     }
-                    className="text-sm sm:text-base text-gray-600 mb-4 text-center border-b border-gray-300 focus:outline-none focus:border-emerald-500 w-full px-2 py-1"
+                    className="text-base text-gray-600 mb-6 text-center border-b border-gray-300 focus:outline-none focus:border-emerald-500 w-full px-2 py-1 bg-transparent"
                     placeholder="Grade Level"
                   />
                 ) : (
-                  <p className="text-sm sm:text-base text-emerald-600 font-medium mb-4 text-center">
+                  <p className="text-base text-emerald-700 font-semibold mb-6 text-center">
                     {gradeLevel}
                   </p>
                 )}
 
-                <div className="w-full space-y-3 sm:space-y-4 mt-4 max-h-[calc(100vh-28rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-emerald-300 scrollbar-track-gray-100 pr-1">
-                  <div className="flex items-start gap-3 text-gray-700 bg-gray-50 rounded-xl p-3">
-                    <Calendar className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <div className="w-full space-y-3 mt-6">
+                  <div className="flex items-start gap-3 text-gray-700 bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <Calendar className="w-6 h-6 text-emerald-600 flex-shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-500 mb-1">
+                      <p className="text-xs text-gray-500 mb-1.5 font-medium">
                         Date of Birth
                       </p>
                       {isEditing ? (
@@ -488,10 +554,10 @@ export function StudentProfile({
                               date_of_birth: e.target.value,
                             })
                           }
-                          className="text-sm font-medium border-b border-gray-300 focus:outline-none focus:border-emerald-500 w-full bg-transparent"
+                          className="text-sm font-semibold border-b border-gray-300 focus:outline-none focus:border-emerald-500 w-full bg-transparent"
                         />
                       ) : (
-                        <p className="text-sm font-medium break-words">
+                        <p className="text-sm font-semibold text-gray-900 break-words">
                           {student.date_of_birth
                             ? `${new Date(
                                 student.date_of_birth
@@ -504,17 +570,19 @@ export function StudentProfile({
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-3 text-gray-700 bg-gray-50 rounded-xl p-3">
-                    <User className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex items-start gap-3 text-gray-700 bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <User className="w-6 h-6 text-emerald-600 flex-shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-500 mb-1">Gender</p>
+                      <p className="text-xs text-gray-500 mb-1.5 font-medium">
+                        Gender
+                      </p>
                       {isEditing ? (
                         <select
                           value={editData.gender || ""}
                           onChange={(e) =>
                             setEditData({ ...editData, gender: e.target.value })
                           }
-                          className="text-sm font-medium border-b border-gray-300 focus:outline-none focus:border-emerald-500 w-full bg-transparent"
+                          className="text-sm font-semibold border-b border-gray-300 focus:outline-none focus:border-emerald-500 w-full bg-transparent"
                         >
                           <option value="">Select Gender</option>
                           <option value="Male">Male</option>
@@ -522,17 +590,19 @@ export function StudentProfile({
                           <option value="Other">Other</option>
                         </select>
                       ) : (
-                        <p className="text-sm font-medium">
+                        <p className="text-sm font-semibold text-gray-900">
                           {student.gender || "Not provided"}
                         </p>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-3 text-gray-700 bg-gray-50 rounded-xl p-3">
-                    <MapPin className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex items-start gap-3 text-gray-700 bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <MapPin className="w-6 h-6 text-emerald-600 flex-shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-500 mb-1">Location</p>
+                      <p className="text-xs text-gray-500 mb-1.5 font-medium">
+                        Location
+                      </p>
                       {isEditing ? (
                         <input
                           type="text"
@@ -543,11 +613,11 @@ export function StudentProfile({
                               location: e.target.value,
                             })
                           }
-                          className="text-sm font-medium border-b border-gray-300 focus:outline-none focus:border-emerald-500 w-full bg-transparent"
+                          className="text-sm font-semibold border-b border-gray-300 focus:outline-none focus:border-emerald-500 w-full bg-transparent"
                           placeholder="City, Country"
                         />
                       ) : (
-                        <p className="text-sm font-medium break-words">
+                        <p className="text-sm font-semibold text-gray-900 break-words">
                           {student.location ||
                             [student.city, student.county, student.country]
                               .filter(Boolean)
@@ -561,21 +631,21 @@ export function StudentProfile({
                   {(student.emergency_contact_name ||
                     student.guardian_name ||
                     student.guardian_phone) && (
-                    <div className="flex items-start gap-3 text-gray-700 bg-gray-50 rounded-xl p-3 border-t-2 border-emerald-100">
-                      <Users className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-3 text-gray-700 bg-gray-50 rounded-xl p-4 border border-gray-100">
+                      <Users className="w-6 h-6 text-emerald-600 flex-shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-500 mb-1">
+                        <p className="text-xs text-gray-500 mb-1.5 font-medium">
                           Emergency Contact
                         </p>
-                        <p className="text-sm font-medium break-words">
+                        <p className="text-sm font-semibold text-gray-900 break-words">
                           {student.emergency_contact_name ||
                             student.guardian_name ||
                             "Not provided"}
                         </p>
                         {(student.guardian_phone ||
                           student.emergency_contact_phone) && (
-                          <p className="text-xs text-gray-600 flex items-center gap-1 mt-1 break-all">
-                            <Phone className="w-3 h-3 flex-shrink-0" />
+                          <p className="text-xs text-gray-600 flex items-center gap-1 mt-1.5 break-all">
+                            <Phone className="w-3.5 h-3.5 flex-shrink-0" />
                             {student.guardian_phone ||
                               student.emergency_contact_phone}
                           </p>
@@ -585,11 +655,13 @@ export function StudentProfile({
                   )}
 
                   {student.email && (
-                    <div className="flex items-start gap-3 text-gray-700 bg-gray-50 rounded-xl p-3">
-                      <Mail className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-3 text-gray-700 bg-gray-50 rounded-xl p-4 border border-gray-100">
+                      <Mail className="w-6 h-6 text-emerald-600 flex-shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-500 mb-1">Email</p>
-                        <p className="text-sm font-medium truncate">
+                        <p className="text-xs text-gray-500 mb-1.5 font-medium">
+                          Email
+                        </p>
+                        <p className="text-sm font-semibold text-gray-900 truncate">
                           {student.email}
                         </p>
                       </div>
@@ -597,11 +669,13 @@ export function StudentProfile({
                   )}
 
                   {student.phone && (
-                    <div className="flex items-start gap-3 text-gray-700 bg-gray-50 rounded-xl p-3">
-                      <Phone className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-3 text-gray-700 bg-gray-50 rounded-xl p-4 border border-gray-100">
+                      <Phone className="w-6 h-6 text-emerald-600 flex-shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-500 mb-1">Phone</p>
-                        <p className="text-sm font-medium break-all">
+                        <p className="text-xs text-gray-500 mb-1.5 font-medium">
+                          Phone
+                        </p>
+                        <p className="text-sm font-semibold text-gray-900 break-all">
                           {student.phone}
                         </p>
                       </div>
@@ -613,86 +687,219 @@ export function StudentProfile({
           </aside>
 
           <main className="lg:col-span-2">
-            <div className="space-y-4 sm:space-y-6">
+            <div className="space-y-6">
+              {/* Show either view mode or edit mode for fees */}
               {feeBalances.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
-                  <div className="flex items-center gap-2 mb-4 sm:mb-6">
-                    <div className="p-2 bg-emerald-100 rounded-lg">
-                      <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
+                <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-emerald-100 rounded-xl">
+                        <DollarSign className="w-7 h-7 text-emerald-700" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-gray-900">
+                        Fee Balance
+                      </h3>
                     </div>
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">
-                      Fee Balance
-                    </h3>
+
+                    <div className="flex gap-2">
+                      {isEditingFees ? (
+                        <>
+                          <button
+                            onClick={handleCancelEditingFees}
+                            disabled={savingFees}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                          >
+                            <X className="w-4 h-4" />
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleSaveFees}
+                            disabled={savingFees}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                          >
+                            {savingFees ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Save className="w-4 h-4" />
+                            )}
+                            {savingFees ? "Saving..." : "Save"}
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={handleStartEditingFees}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                          Edit Fees
+                        </button>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-                      <p className="text-xs text-blue-700 mb-1 font-medium">
-                        Total Fees
-                      </p>
-                      <p className="text-xl sm:text-2xl font-bold text-blue-900">
-                        KES {totalFees.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
-                      <p className="text-xs text-emerald-700 mb-1 font-medium">
-                        Amount Paid
-                      </p>
-                      <p className="text-xl sm:text-2xl font-bold text-emerald-900">
-                        KES {totalPaid.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-br from-rose-50 to-rose-100 rounded-xl p-4 border border-rose-200">
-                      <p className="text-xs text-rose-700 mb-1 font-medium">
-                        Balance Due
-                      </p>
-                      <p className="text-xl sm:text-2xl font-bold text-rose-900">
-                        KES {balanceDue.toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
+                  {isEditingFees ? (
+                    // Edit mode
+                    <div className="space-y-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Total Fees Input */}
+                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-5 border border-blue-200 shadow">
+                          <label className="text-xs text-blue-700 mb-2 font-medium block">
+                            Total Fees (KES)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={editFeeData.total_fees}
+                            onChange={(e) =>
+                              setEditFeeData({
+                                ...editFeeData,
+                                total_fees:
+                                  Number.parseFloat(e.target.value) || 0,
+                              })
+                            }
+                            className="w-full text-xl sm:text-2xl font-bold text-blue-900 bg-transparent border-b-2 border-blue-300 focus:border-blue-500 outline-none transition-colors"
+                            placeholder="0.00"
+                          />
+                        </div>
 
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs sm:text-sm font-medium text-gray-700">
-                        Payment Progress
-                      </span>
-                      <span className="text-sm sm:text-base font-bold text-emerald-600">
-                        {paymentProgress.toFixed(1)}%
-                      </span>
+                        {/* Amount Paid Input */}
+                        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-5 border border-emerald-200 shadow">
+                          <label className="text-xs text-emerald-700 mb-2 font-medium block">
+                            Amount Paid (KES)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={editFeeData.amount_paid}
+                            onChange={(e) =>
+                              setEditFeeData({
+                                ...editFeeData,
+                                amount_paid:
+                                  Number.parseFloat(e.target.value) || 0,
+                              })
+                            }
+                            className="w-full text-xl sm:text-2xl font-bold text-emerald-900 bg-transparent border-b-2 border-emerald-300 focus:border-emerald-500 outline-none transition-colors"
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Auto-calculated Balance Due */}
+                      <div className="bg-gradient-to-br from-rose-50 to-rose-100 rounded-xl p-5 border border-rose-200 shadow">
+                        <p className="text-xs text-rose-700 mb-1.5 font-medium">
+                          Balance Due (Auto-calculated)
+                        </p>
+                        <p className="text-xl sm:text-2xl font-bold text-rose-900">
+                          KES{" "}
+                          {editBalanceDue.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                      </div>
+
+                      {/* Payment Progress Preview */}
+                      <div>
+                        <div className="flex justify-between items-center mb-2.5">
+                          <span className="text-sm font-medium text-gray-700">
+                            Payment Progress (Preview)
+                          </span>
+                          <span className="text-base font-bold text-emerald-700">
+                            {editPaymentProgress.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3.5 sm:h-4 overflow-hidden">
+                          <div
+                            className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-500 shadow-sm"
+                            style={{
+                              width: `${Math.min(editPaymentProgress, 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-gray-600 italic bg-blue-50 p-3 rounded-lg border border-blue-100">
+                        Note: Balance Due is automatically calculated as Total
+                        Fees minus Amount Paid
+                      </p>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3 sm:h-4 overflow-hidden">
-                      <div
-                        className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-500 shadow-sm"
-                        style={{ width: `${Math.min(paymentProgress, 100)}%` }}
-                      />
-                    </div>
-                  </div>
+                  ) : (
+                    // View mode
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mb-5 sm:mb-7">
+                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-5 border border-blue-200 shadow">
+                          <p className="text-xs text-blue-700 mb-1.5 font-medium">
+                            Total Fees
+                          </p>
+                          <p className="text-xl sm:text-2xl font-bold text-blue-900">
+                            KES {totalFees.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-5 border border-emerald-200 shadow">
+                          <p className="text-xs text-emerald-700 mb-1.5 font-medium">
+                            Amount Paid
+                          </p>
+                          <p className="text-xl sm:text-2xl font-bold text-emerald-900">
+                            KES {totalPaid.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="bg-gradient-to-br from-rose-50 to-rose-100 rounded-xl p-5 border border-rose-200 shadow">
+                          <p className="text-xs text-rose-700 mb-1.5 font-medium">
+                            Balance Due
+                          </p>
+                          <p className="text-xl sm:text-2xl font-bold text-rose-900">
+                            KES {balanceDue.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between items-center mb-2.5">
+                          <span className="text-sm font-medium text-gray-700">
+                            Payment Progress
+                          </span>
+                          <span className="text-base font-bold text-emerald-700">
+                            {paymentProgress.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3.5 sm:h-4 overflow-hidden">
+                          <div
+                            className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-500 shadow-sm"
+                            style={{
+                              width: `${Math.min(paymentProgress, 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
               {recentPayments.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
-                  <div className="flex items-center gap-2 mb-4 sm:mb-6">
-                    <div className="p-2 bg-emerald-100 rounded-lg">
-                      <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
+                <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2.5 bg-emerald-100 rounded-xl">
+                      <CreditCard className="w-7 h-7 text-emerald-700" />
                     </div>
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">
+                    <h3 className="text-2xl font-bold text-gray-900">
                       Recent Payments
                     </h3>
                   </div>
                   <div className="overflow-x-auto -mx-4 sm:mx-0 max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-emerald-300 scrollbar-track-gray-100">
                     <div className="inline-block min-w-full align-middle">
                       <table className="min-w-full">
-                        <thead className="border-b-2 border-gray-200 sticky top-0 bg-white">
+                        <thead className="border-b-2 border-gray-200 sticky top-0 bg-white/60 backdrop-blur-sm">
                           <tr>
-                            <th className="pb-3 px-4 text-left text-xs sm:text-sm font-semibold text-gray-600">
+                            <th className="pb-3 px-4 text-left text-xs sm:text-sm font-semibold text-gray-600 uppercase">
                               Date
                             </th>
-                            <th className="pb-3 px-4 text-left text-xs sm:text-sm font-semibold text-gray-600">
+                            <th className="pb-3 px-4 text-left text-xs sm:text-sm font-semibold text-gray-600 uppercase">
                               Amount
                             </th>
-                            <th className="pb-3 px-4 text-left text-xs sm:text-sm font-semibold text-gray-600">
+                            <th className="pb-3 px-4 text-left text-xs sm:text-sm font-semibold text-gray-600 uppercase">
                               Method
                             </th>
                           </tr>
@@ -701,16 +908,16 @@ export function StudentProfile({
                           {recentPayments.map((payment, i) => (
                             <tr
                               key={i}
-                              className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
+                              className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors"
                             >
-                              <td className="py-3 px-4 text-xs sm:text-sm text-gray-700">
+                              <td className="py-3 px-4 text-sm text-gray-700">
                                 {new Date(
                                   payment.date ||
                                     payment.created_at ||
                                     Date.now()
                                 ).toLocaleDateString()}
                               </td>
-                              <td className="py-3 px-4 text-xs sm:text-sm font-semibold text-emerald-600">
+                              <td className="py-3 px-4 text-sm font-semibold text-emerald-600">
                                 KES{" "}
                                 {(
                                   payment.amount ||
@@ -718,7 +925,7 @@ export function StudentProfile({
                                   0
                                 ).toLocaleString()}
                               </td>
-                              <td className="py-3 px-4 text-xs sm:text-sm text-gray-600">
+                              <td className="py-3 px-4 text-sm text-gray-600">
                                 {payment.method ||
                                   payment.payment_method ||
                                   "N/A"}
@@ -732,12 +939,12 @@ export function StudentProfile({
                 </div>
               )}
 
-              <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
-                <div className="flex items-center gap-2 mb-4 sm:mb-6">
-                  <div className="p-2 bg-emerald-100 rounded-lg">
-                    <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
+              <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2.5 bg-emerald-100 rounded-xl">
+                    <TrendingUp className="w-7 h-7 text-emerald-700" />
                   </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-800">
+                  <h3 className="text-2xl font-bold text-gray-900">
                     Academic Information
                   </h3>
                 </div>
@@ -755,7 +962,7 @@ export function StudentProfile({
                             setEditData({ ...editData, course: e.target.value })
                           }
                           placeholder="e.g., Bachelor of Science in Computer Science"
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white/80"
                         />
                       </div>
                       <div>
@@ -770,7 +977,7 @@ export function StudentProfile({
                               academic_performance: e.target.value,
                             })
                           }
-                          className="w-full p-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm sm:text-base"
+                          className="w-full p-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm sm:text-base bg-white/80"
                           rows={4}
                           placeholder="Share your academic achievements, GPA, awards, or any other relevant academic information..."
                         />
@@ -818,14 +1025,12 @@ export function StudentProfile({
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
-                <div className="flex items-center gap-2 mb-4 sm:mb-6">
-                  <div className="p-2 bg-emerald-100 rounded-lg">
-                    <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
+              <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2.5 bg-emerald-100 rounded-xl">
+                    <Heart className="w-7 h-7 text-emerald-700" />
                   </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-800">
-                    About Me
-                  </h3>
+                  <h3 className="text-2xl font-bold text-gray-900">About Me</h3>
                 </div>
                 <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-emerald-300 scrollbar-track-gray-100 pr-2">
                   {isEditing ? (
@@ -837,7 +1042,7 @@ export function StudentProfile({
                           background_story: e.target.value,
                         })
                       }
-                      className="w-full p-3 sm:p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm sm:text-base"
+                      className="w-full p-3 sm:p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm sm:text-base bg-white/80"
                       rows={5}
                       placeholder="Share your background story, interests, aspirations, and what makes you unique. This helps potential sponsors connect with your journey..."
                     />
@@ -854,12 +1059,12 @@ export function StudentProfile({
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
-                <div className="flex items-center gap-2 mb-4 sm:mb-6">
-                  <div className="p-2 bg-emerald-100 rounded-lg">
-                    <Users className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
+              <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2.5 bg-emerald-100 rounded-xl">
+                    <Users className="w-7 h-7 text-emerald-700" />
                   </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-800">
+                  <h3 className="text-2xl font-bold text-gray-900">
                     Family Situation
                   </h3>
                 </div>
@@ -873,7 +1078,7 @@ export function StudentProfile({
                           family_situation: e.target.value,
                         })
                       }
-                      className="w-full p-3 sm:p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm sm:text-base"
+                      className="w-full p-3 sm:p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm sm:text-base bg-white/80"
                       rows={5}
                       placeholder="Describe your family background, living situation, family members, guardians, and any challenges you face. This helps sponsors understand your circumstances..."
                     />
@@ -890,22 +1095,22 @@ export function StudentProfile({
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-4 sm:mb-6">
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 bg-emerald-100 rounded-lg">
-                      <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
+              <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-emerald-100 rounded-xl">
+                      <CreditCard className="w-7 h-7 text-emerald-700" />
                     </div>
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">
+                    <h3 className="text-2xl font-bold text-gray-900">
                       Payment Account Information
                     </h3>
                   </div>
                   {isEditing && (
                     <button
                       onClick={() => setIsAddingAccount(true)}
-                      className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors shadow-md"
                     >
-                      <span className="text-lg">+</span>
+                      <span className="text-xl">+</span>
                       Add Account
                     </button>
                   )}
@@ -917,18 +1122,18 @@ export function StudentProfile({
                       {paymentAccounts.map((account, idx) => (
                         <div
                           key={account.id || idx}
-                          className="bg-gray-50 rounded-xl p-4 border border-gray-200"
+                          className="bg-white/80 rounded-xl p-4 border border-gray-200 shadow"
                         >
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center gap-2">
-                              <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                                <CreditCard className="w-5 h-5 text-emerald-600" />
+                              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                                <CreditCard className="w-6 h-6 text-emerald-700" />
                               </div>
                               <div>
-                                <p className="font-semibold text-gray-800">
+                                <p className="font-bold text-gray-800">
                                   {account.account_name || account.bank_name}
                                 </p>
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-gray-500 font-medium">
                                   {account.account_type
                                     ?.replace("_", " ")
                                     .toUpperCase()}
@@ -936,37 +1141,39 @@ export function StudentProfile({
                               </div>
                             </div>
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                             <div>
-                              <p className="text-xs text-gray-500">Bank Name</p>
-                              <p className="font-medium text-gray-800">
+                              <p className="text-xs text-gray-500 mb-0.5 uppercase font-medium">
+                                Bank Name
+                              </p>
+                              <p className="font-semibold text-gray-800">
                                 {account.bank_name}
                               </p>
                             </div>
                             <div>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-gray-500 mb-0.5 uppercase font-medium">
                                 Account Number
                               </p>
-                              <p className="font-medium text-gray-800">
+                              <p className="font-semibold text-gray-800">
                                 {account.account_number}
                               </p>
                             </div>
                             {account.swift_code && (
                               <div>
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-gray-500 mb-0.5 uppercase font-medium">
                                   SWIFT Code
                                 </p>
-                                <p className="font-medium text-gray-800">
+                                <p className="font-semibold text-gray-800">
                                   {account.swift_code}
                                 </p>
                               </div>
                             )}
                             {account.additional_info && (
                               <div className="sm:col-span-2">
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-gray-500 mb-0.5 uppercase font-medium">
                                   Additional Info
                                 </p>
-                                <p className="font-medium text-gray-800">
+                                <p className="font-semibold text-gray-800">
                                   {account.additional_info}
                                 </p>
                               </div>
@@ -976,9 +1183,9 @@ export function StudentProfile({
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 bg-gray-50 rounded-xl">
+                    <div className="text-center py-8 bg-gray-50 rounded-xl shadow">
                       <CreditCard className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-600 font-medium">
                         No payment accounts added yet
                       </p>
                       {isEditing && (
@@ -991,9 +1198,9 @@ export function StudentProfile({
                 </div>
 
                 {isAddingAccount && (
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-                      <h4 className="text-xl font-bold text-gray-800 mb-4">
+                  <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8 max-h-[90vh] overflow-y-auto">
+                      <h4 className="text-2xl font-bold text-gray-800 mb-5">
                         Add Payment Account
                       </h4>
                       <div className="space-y-4">
@@ -1009,7 +1216,7 @@ export function StudentProfile({
                                 account_type: e.target.value,
                               })
                             }
-                            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           >
                             <option value="school_fees">School Fees</option>
                             <option value="bank_account">Bank Account</option>
@@ -1030,7 +1237,7 @@ export function StudentProfile({
                               })
                             }
                             placeholder="e.g., Main School Account"
-                            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           />
                         </div>
                         <div>
@@ -1047,7 +1254,7 @@ export function StudentProfile({
                               })
                             }
                             placeholder="e.g., Equity Bank"
-                            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           />
                         </div>
                         <div>
@@ -1064,7 +1271,7 @@ export function StudentProfile({
                               })
                             }
                             placeholder="e.g., 1234567890"
-                            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           />
                         </div>
                         <div>
@@ -1081,7 +1288,7 @@ export function StudentProfile({
                               })
                             }
                             placeholder="e.g., EQBLKENA"
-                            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           />
                         </div>
                         <div>
@@ -1098,11 +1305,11 @@ export function StudentProfile({
                             }
                             placeholder="Any additional information"
                             rows={2}
-                            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           />
                         </div>
                       </div>
-                      <div className="flex gap-3 mt-6">
+                      <div className="flex gap-3 mt-8">
                         <button
                           onClick={() => {
                             setIsAddingAccount(false);
@@ -1115,7 +1322,7 @@ export function StudentProfile({
                               additional_info: "",
                             });
                           }}
-                          className="flex-1 px-4 py-2 border-2 border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                          className="flex-1 px-4 py-2.5 border-2 border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors"
                         >
                           Cancel
                         </button>
@@ -1134,7 +1341,7 @@ export function StudentProfile({
                             );
                             setIsAddingAccount(false);
                           }}
-                          className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors"
+                          className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-colors shadow-md"
                         >
                           Save Account
                         </button>
@@ -1145,25 +1352,27 @@ export function StudentProfile({
               </div>
 
               {student.institution && (
-                <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
-                  <div className="flex items-center gap-2 mb-4 sm:mb-6">
-                    <div className="p-2 bg-emerald-100 rounded-lg">
-                      <School className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
+                <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2.5 bg-emerald-100 rounded-xl">
+                      <School className="w-7 h-7 text-emerald-700" />
                     </div>
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">
+                    <h3 className="text-2xl font-bold text-gray-900">
                       Institution
                     </h3>
                   </div>
                   <div className="space-y-3">
                     <div className="bg-gray-50 rounded-xl p-4">
-                      <p className="text-xs text-gray-500 mb-1">School Name</p>
-                      <p className="text-sm sm:text-base font-semibold text-gray-800">
+                      <p className="text-xs text-gray-500 mb-1 uppercase font-medium">
+                        School Name
+                      </p>
+                      <p className="text-sm sm:text-base font-bold text-gray-800">
                         {student.institution.name}
                       </p>
                     </div>
                     {student.institution.email && (
                       <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-4">
-                        <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <Mail className="w-5 h-5 text-gray-400 flex-shrink-0" />
                         <p className="text-xs sm:text-sm text-gray-700 break-all">
                           {student.institution.email}
                         </p>
@@ -1171,7 +1380,7 @@ export function StudentProfile({
                     )}
                     {student.institution.phone && (
                       <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-4">
-                        <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <Phone className="w-5 h-5 text-gray-400 flex-shrink-0" />
                         <p className="text-xs sm:text-sm text-gray-700">
                           {student.institution.phone}
                         </p>
@@ -1179,7 +1388,7 @@ export function StudentProfile({
                     )}
                     {student.institution.address && (
                       <div className="flex items-start gap-3 bg-gray-50 rounded-xl p-4">
-                        <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                        <MapPin className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
                         <p className="text-xs sm:text-sm text-gray-700">
                           {student.institution.address}
                         </p>

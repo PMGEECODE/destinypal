@@ -754,13 +754,170 @@ export function LandingPage({
         </div>
       </section>
 
-      <footer className="bg-gradient-to-br from-slate-800 to-slate-900 pt-8 md:pt-12 pb-4 md:pb-6">
+      <footer className="bg-gradient-to-br from-slate-800 to-slate-900 pt-6 md:pt-12 pb-4 md:pb-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-8 mb-8">
+          {/* Mobile Layout - Compact and left-aligned */}
+          <div className="md:hidden space-y-8">
+            {/* Logo and Description - centered (as in reference image) */}
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="w-7 h-7 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-lg flex items-center justify-center">
+                  <Heart className="w-4 h-4 text-slate-800 fill-slate-800" />
+                </div>
+                <span className="text-base font-bold text-white">
+                  DestinyPal
+                </span>
+              </div>
+              <p className="text-sm text-gray-400 leading-relaxed max-w-sm mx-auto">
+                DestinyPal empowers underprivileged individuals and communities
+                through education, youth development, and community support
+                programs.
+              </p>
+            </div>
+
+            {/* Useful Links and Get In Touch - two columns, left-aligned content */}
+            <div className="grid grid-cols-2 gap-6">
+              {/* Useful Links */}
+              <div>
+                <h3 className="text-white font-semibold mb-3 text-sm">
+                  Useful Links
+                </h3>
+                <nav aria-label="Footer useful links">
+                  <ul className="space-y-2">
+                    <li>
+                      <button
+                        onClick={onNavigateToRegister}
+                        className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                        aria-label="Navigate to sponsor a student page"
+                      >
+                        Sponsor a Student
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={onNavigateToDonate}
+                        className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                        aria-label="Navigate to make a donation page"
+                      >
+                        Make a Donation
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={onNavigateToAbout}
+                        className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                        aria-label="Navigate to about us page"
+                      >
+                        About Us
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={onNavigateToContact}
+                        className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                        aria-label="Navigate to contact us page"
+                      >
+                        Contact Us
+                      </button>
+                    </li>
+                  </ul>
+                </nav>
+              </div>
+
+              {/* Get In Touch */}
+              <div>
+                <h3 className="text-white font-semibold mb-3 text-sm">
+                  Get In Touch
+                </h3>
+                <address className="not-italic space-y-2 text-sm">
+                  <div className="flex items-start gap-3">
+                    <MapPin
+                      className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0"
+                      aria-hidden="true"
+                    />
+                    <p className="text-gray-300">
+                      DestinyPal, Nairobi
+                      <br />
+                      Westlands, ABC Place, 5th Floor
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Mail
+                      className="w-4 h-4 text-yellow-400 flex-shrink-0"
+                      aria-hidden="true"
+                    />
+                    <a
+                      href="mailto:support@destinypal.org"
+                      className="text-yellow-400 hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                    >
+                      support@destinypal.org
+                    </a>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Phone
+                      className="w-4 h-4 text-yellow-400 flex-shrink-0"
+                      aria-hidden="true"
+                    />
+                    <a
+                      href="tel:+254700123456"
+                      className="text-yellow-400 hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                    >
+                      +254 700 123 456
+                    </a>
+                  </div>
+                </address>
+              </div>
+            </div>
+
+            {/* Social Icons - centered */}
+            <div className="flex justify-center gap-4">
+              <a
+                href="#"
+                className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                aria-label="Follow us on Facebook"
+              >
+                <Facebook className="w-4 h-4" />
+              </a>
+              <a
+                href="#"
+                className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                aria-label="Follow us on X (Twitter)"
+              >
+                <Twitter className="w-4 h-4" />
+              </a>
+              <a
+                href="#"
+                className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                aria-label="Connect with us on LinkedIn"
+              >
+                <Linkedin className="w-4 h-4" />
+              </a>
+              <a
+                href="#"
+                className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                aria-label="Subscribe to our YouTube channel"
+              >
+                <Youtube className="w-4 h-4" />
+              </a>
+              <a
+                href="#"
+                className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                aria-label="Follow us on Instagram"
+              >
+                <Instagram className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+
+          {/* Desktop Layout - unchanged except accessibility improvements */}
+          <div className="hidden md:grid md:grid-cols-3 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-lg flex items-center justify-center">
-                  <Heart className="w-4 h-4 text-slate-800 fill-slate-800" />
+                  <Heart
+                    className="w-4 h-4 text-slate-800 fill-slate-800"
+                    aria-hidden="true"
+                  />
                 </div>
                 <span className="text-base font-bold text-white">
                   DestinyPal
@@ -777,108 +934,123 @@ export function LandingPage({
               <h3 className="text-white font-semibold mb-3 text-sm md:text-base">
                 Useful Links
               </h3>
-              <ul className="space-y-2">
-                <li>
-                  <button
-                    onClick={onNavigateToRegister}
-                    className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors"
-                  >
-                    Sponsor a Student
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={onNavigateToDonate}
-                    className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors"
-                  >
-                    Make a Donation
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={onNavigateToAbout}
-                    className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors"
-                  >
-                    About Us
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={onNavigateToContact}
-                    className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors"
-                  >
-                    Contact Us
-                  </button>
-                </li>
-              </ul>
+              <nav aria-label="Footer useful links">
+                <ul className="space-y-2">
+                  <li>
+                    <button
+                      onClick={onNavigateToRegister}
+                      className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                      aria-label="Navigate to sponsor a student page"
+                    >
+                      Sponsor a Student
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={onNavigateToDonate}
+                      className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                      aria-label="Navigate to make a donation page"
+                    >
+                      Make a Donation
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={onNavigateToAbout}
+                      className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                      aria-label="Navigate to about us page"
+                    >
+                      About Us
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={onNavigateToContact}
+                      className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
+                      aria-label="Navigate to contact us page"
+                    >
+                      Contact Us
+                    </button>
+                  </li>
+                </ul>
+              </nav>
             </div>
 
             <div>
               <h3 className="text-white font-semibold mb-3 text-sm md:text-base">
                 Get In Touch
               </h3>
-              <div className="space-y-2 mb-4">
+              <address className="not-italic space-y-2 mb-4 text-sm">
                 <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-gray-300">
+                  <MapPin
+                    className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0"
+                    aria-hidden="true"
+                  />
+                  <p className="text-gray-300">
                     DestinyPal, Nairobi
                     <br />
                     Westlands, ABC Place, 5th Floor
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                  <Mail
+                    className="w-4 h-4 text-yellow-400 flex-shrink-0"
+                    aria-hidden="true"
+                  />
                   <a
                     href="mailto:support@destinypal.org"
-                    className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors"
+                    className="text-yellow-400 hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
                   >
                     support@destinypal.org
                   </a>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                  <Phone
+                    className="w-4 h-4 text-yellow-400 flex-shrink-0"
+                    aria-hidden="true"
+                  />
                   <a
                     href="tel:+254700123456"
-                    className="text-yellow-400 text-sm hover:text-yellow-300 transition-colors"
+                    className="text-yellow-400 hover:text-yellow-300 transition-colors focus:outline-none focus:underline"
                   >
                     +254 700 123 456
                   </a>
                 </div>
-              </div>
+              </address>
 
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <a
                   href="#"
-                  className="w-8 h-8 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300"
-                  aria-label="Facebook"
+                  className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  aria-label="Follow us on Facebook"
                 >
                   <Facebook className="w-4 h-4" />
                 </a>
                 <a
                   href="#"
-                  className="w-8 h-8 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300"
-                  aria-label="Twitter"
+                  className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  aria-label="Follow us on X (Twitter)"
                 >
                   <Twitter className="w-4 h-4" />
                 </a>
                 <a
                   href="#"
-                  className="w-8 h-8 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300"
-                  aria-label="LinkedIn"
+                  className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  aria-label="Connect with us on LinkedIn"
                 >
                   <Linkedin className="w-4 h-4" />
                 </a>
                 <a
                   href="#"
-                  className="w-8 h-8 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300"
-                  aria-label="YouTube"
+                  className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  aria-label="Subscribe to our YouTube channel"
                 >
                   <Youtube className="w-4 h-4" />
                 </a>
                 <a
                   href="#"
-                  className="w-8 h-8 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300"
-                  aria-label="Instagram"
+                  className="w-9 h-9 bg-slate-700 hover:bg-yellow-400 text-white hover:text-slate-800 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  aria-label="Follow us on Instagram"
                 >
                   <Instagram className="w-4 h-4" />
                 </a>
@@ -886,6 +1058,7 @@ export function LandingPage({
             </div>
           </div>
 
+          {/* Copyright */}
           <div className="border-t border-slate-700 pt-4 md:pt-6">
             <p className="text-center text-xs md:text-sm text-gray-400">
               © 2025 – DestinyPal | All Rights Reserved

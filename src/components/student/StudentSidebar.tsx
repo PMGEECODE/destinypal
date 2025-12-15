@@ -1,4 +1,6 @@
-"use client"
+"use client";
+
+import type React from "react";
 
 import {
   User,
@@ -9,22 +11,23 @@ import {
   Menu,
   X,
   FileText,
-} from "lucide-react"
-import { useState } from "react"
-import Logo from "../logo/Logo"
+  Wallet,
+} from "lucide-react";
+import { useState } from "react";
+import Logo from "../logo/Logo";
 
 interface NavItem {
-  id: string
-  label: string
-  icon: React.ElementType
-  description: string
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  description: string;
 }
 
 interface StudentSidebarProps {
-  currentView: string
-  onNavigate: (view: string) => void
-  studentEmail?: string
-  onLogout?: () => void
+  currentView: string;
+  onNavigate: (view: string) => void;
+  studentEmail?: string;
+  onLogout?: () => void;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -33,6 +36,12 @@ const NAV_ITEMS: NavItem[] = [
     label: "My Profile",
     icon: User,
     description: "View and edit your profile",
+  },
+  {
+    id: "balance",
+    label: "Fee Balance",
+    icon: Wallet,
+    description: "View your school fees and payments",
   },
   {
     id: "documents",
@@ -58,7 +67,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: HelpCircle,
     description: "Get assistance when needed",
   },
-]
+];
 
 export function StudentSidebar({
   currentView,
@@ -66,14 +75,14 @@ export function StudentSidebar({
   studentEmail,
   onLogout,
 }: StudentSidebarProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleNavigate = (viewId: string) => {
-    onNavigate(viewId)
-    setIsOpen(false)
-  }
+    onNavigate(viewId);
+    setIsOpen(false);
+  };
 
-  const toggleSidebar = () => setIsOpen((prev) => !prev)
+  const toggleSidebar = () => setIsOpen((prev) => !prev);
 
   return (
     <>
@@ -81,7 +90,7 @@ export function StudentSidebar({
       <button
         onClick={toggleSidebar}
         aria-label={isOpen ? "Close menu" : "Open menu"}
-        className="fixed bottom-6 right-6 z-50 lg:hidden bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-2xl transition-all hover:scale-110"
+        className="fixed bottom-6 right-6 z-50 lg:hidden bg-emerald-600 hover:bg-emerald-700 text-white p-4 rounded-full shadow-2xl transition-all hover:scale-110"
       >
         {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
       </button>
@@ -98,7 +107,7 @@ export function StudentSidebar({
       {/* Sidebar */}
       <aside
         className={`
-          fixed left-0 top-0 z-40 h-screen w-72 bg-white shadow-2xl
+          fixed left-0 top-0 z-40 h-screen w-72 bg-gray-100 border-r border-gray-200
           transform transition-transform duration-300 ease-in-out
           lg:translate-x-0
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
@@ -106,14 +115,14 @@ export function StudentSidebar({
       >
         <div className="flex h-full flex-col">
           {/* Header with Logo */}
-          <div className="border-b border-gray-200 px-6 py-6">
-            <div className="flex items-center gap-4">
+          <div className="border-b border-gray-300 px-6 py-8 bg-white">
+            <div className="flex items-center gap-3">
               <Logo className="h-12 w-12 text-blue-600" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-xl font-bold text-gray-900">
                   Student Portal
                 </h1>
-                <p className="text-sm text-gray-500">DestinyPal</p>
+                <p className="text-sm text-gray-600">Destinypal</p>
               </div>
             </div>
           </div>
@@ -121,8 +130,8 @@ export function StudentSidebar({
           {/* Navigation */}
           <nav className="flex-1 space-y-2 overflow-y-auto px-4 py-6">
             {NAV_ITEMS.map((item) => {
-              const Icon = item.icon
-              const isActive = currentView === item.id
+              const Icon = item.icon;
+              const isActive = currentView === item.id;
 
               return (
                 <button
@@ -131,10 +140,11 @@ export function StudentSidebar({
                   className={`
                     relative flex w-full items-start gap-4 rounded-xl px-4 py-4 text-left
                     transition-all duration-200 group
-                    ${isActive
-                      ? "bg-gradient-to-r from-blue-50 to-blue-100 text-blue-900 shadow-md border border-blue-200"
-                      : "text-gray-700 hover:bg-gray-50 hover:shadow-sm"
-                  }`}
+                    ${
+                      isActive
+                        ? "bg-gradient-to-r from-blue-50 to-blue-100 text-blue-900 shadow-md border border-blue-200"
+                        : "text-gray-700 hover:bg-gray-50 hover:shadow-sm"
+                    }`}
                   aria-current={isActive ? "page" : undefined}
                 >
                   {isActive && (
@@ -167,14 +177,14 @@ export function StudentSidebar({
                     </p>
                   </div>
                 </button>
-              )
+              );
             })}
           </nav>
 
           {/* Footer – User info & logout */}
           {studentEmail && (
-            <div className="border-t border-gray-200 bg-gray-50/80 p-5">
-              <div className="mb-4 rounded-xl bg-white p-4 shadow-sm border border-gray-200">
+            <div className="border-t border-gray-300 bg-white p-5">
+              <div className="mb-4 rounded-xl bg-gray-50 p-4 shadow-sm border border-gray-200">
                 <p className="text-xs font-medium uppercase tracking-wider text-gray-600">
                   Logged in as
                 </p>
@@ -197,5 +207,5 @@ export function StudentSidebar({
         </div>
       </aside>
     </>
-  )
+  );
 }
